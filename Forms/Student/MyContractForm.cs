@@ -142,5 +142,10 @@ namespace QuanLyKtx.Forms.Student
             grpActiveContract.Visible = false;
             grpHistory.Visible = false;
         }
+
+        private void dgvContracts_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
     }
 }
