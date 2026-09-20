@@ -1,0 +1,23 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# .NET build output
+bin/
+obj/
+
+# Rider and VS Code local metadata
+.idea/
+.vscode/
+
+# Logs and local environment files
+*.log
+*.tmp
+*.local
+*.userprefs
+
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
