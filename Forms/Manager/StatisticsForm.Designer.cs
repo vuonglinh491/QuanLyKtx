@@ -111,9 +111,9 @@ namespace QuanLyKtx.Forms.Manager
             btnExportCsv.Name = "btnExportCsv";
             btnExportCsv.Size = new System.Drawing.Size(130, 32);
             btnExportCsv.TabIndex = 3;
-            btnExportCsv.Text = "Xuất file CSV";
+            btnExportCsv.Text = "Xuất file PDF";
             btnExportCsv.UseVisualStyleBackColor = false;
-            btnExportCsv.Click += btnExportCsv_Click;
+            btnExportCsv.Click += btnExportPdf_Click;
             // 
             // btnRefresh
             // 

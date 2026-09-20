@@ -1,10 +1,12 @@
 using System;
 using System.Data;
 using System.Drawing;
-using System.IO;
-using System.Text;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPdfLicenseType = QuestPDF.Infrastructure.LicenseType;
 using QuanLyKtx.Data;
 using QuanLyKtx.Utils;
 
@@ -249,25 +251,29 @@ namespace QuanLyKtx.Forms.Manager
             LoadAllStatistics();
         }
 
-        private void btnExportCsv_Click(object? sender, EventArgs e)
+        private void btnExportPdf_Click(object? sender, EventArgs e)
         {
             DataGridView? currentGrid = null;
             string defaultFileName = "BaoCao_";
+            string reportTitle = "BÁO CÁO THỐNG KÊ";
 
             if (tabStatistics.SelectedTab == tabRevenue)
             {
                 currentGrid = dgvRevenue;
                 defaultFileName += "DoanhThu_" + GetSelectedYear();
+                reportTitle = $"BÁO CÁO DOANH THU NĂM {GetSelectedYear()}";
             }
             else if (tabStatistics.SelectedTab == tabOccupancy)
             {
                 currentGrid = dgvOccupancy;
                 defaultFileName += "TyLeLapDay";
+                reportTitle = "BÁO CÁO TỶ LỆ LẤP ĐẦY KÝ TÚC XÁ";
             }
             else if (tabStatistics.SelectedTab == tabViolations)
             {
                 currentGrid = dgvViolations;
                 defaultFileName += "ViPham_" + GetSelectedYear();
+                reportTitle = $"BÁO CÁO VI PHẠM NĂM {GetSelectedYear()}";
             }
 
             if (currentGrid == null || currentGrid.Rows.Count == 0)
@@ -278,8 +284,8 @@ namespace QuanLyKtx.Forms.Manager
 
             using var sfd = new SaveFileDialog
             {
-                Filter = "File CSV (*.csv)|*.csv",
-                FileName = defaultFileName + ".csv",
+                Filter = "File PDF (*.pdf)|*.pdf",
+                FileName = defaultFileName + ".pdf",
                 Title = "Lưu file báo cáo thống kê"
             };
 
@@ -287,33 +293,58 @@ namespace QuanLyKtx.Forms.Manager
             {
                 try
                 {
-                    var sb = new StringBuilder();
-
-                    // Ghi tiêu đề cột
-                    for (int i = 0; i < currentGrid.Columns.Count; i++)
+                    QuestPDF.Settings.License = QuestPdfLicenseType.Community;
+                    var visibleColumns = new List<DataGridViewColumn>();
+                    foreach (DataGridViewColumn column in currentGrid.Columns)
                     {
-                        if (!currentGrid.Columns[i].Visible) continue;
-                        sb.Append("\"" + currentGrid.Columns[i].HeaderText.Replace("\"", "\"\"") + "\"");
-                        if (i < currentGrid.Columns.Count - 1) sb.Append(",");
+                        if (column.Visible) visibleColumns.Add(column);
                     }
-                    sb.AppendLine();
 
-                    // Ghi từng dòng dữ liệu
-                    foreach (DataGridViewRow row in currentGrid.Rows)
+                    Document.Create(document => document.Page(page =>
                     {
-                        if (row.IsNewRow) continue;
-                        for (int i = 0; i < currentGrid.Columns.Count; i++)
+                        page.Size(PageSizes.A4.Landscape());
+                        page.Margin(24);
+                        page.DefaultTextStyle(style => style.FontFamily("Arial").FontSize(8));
+                        page.Header().Column(column =>
                         {
-                            if (!currentGrid.Columns[i].Visible) continue;
-                            string cellVal = row.Cells[i].Value?.ToString() ?? string.Empty;
-                            sb.Append("\"" + cellVal.Replace("\"", "\"\"") + "\"");
-                            if (i < currentGrid.Columns.Count - 1) sb.Append(",");
-                        }
-                        sb.AppendLine();
-                    }
+                            column.Item().AlignCenter().Text(reportTitle).Bold().FontSize(15);
+                            column.Item().AlignCenter().Text($"Ngày xuất: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(8);
+                        });
+                        page.Content().PaddingTop(14).Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                foreach (var _ in visibleColumns) columns.RelativeColumn();
+                            });
 
-                    // Ghi file với BOM để Excel hiển thị tiếng Việt không bị lỗi font
-                    File.WriteAllText(sfd.FileName, sb.ToString(), Encoding.UTF8);
+                            table.Header(header =>
+                            {
+                                foreach (DataGridViewColumn column in visibleColumns)
+                                {
+                                    header.Cell().Background(Colors.Blue.Darken2).Padding(4)
+                                        .Text(column.HeaderText).FontColor(Colors.White).Bold();
+                                }
+                            });
+
+                            foreach (DataGridViewRow row in currentGrid.Rows)
+                            {
+                                if (row.IsNewRow) continue;
+                                foreach (DataGridViewColumn column in visibleColumns)
+                                {
+                                    string value = row.Cells[column.Index].Value?.ToString() ?? string.Empty;
+                                    table.Cell().Border(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(value);
+                                }
+                            }
+                        });
+                        page.Footer().AlignCenter().Text(text =>
+                        {
+                            text.Span("Trang ");
+                            text.CurrentPageNumber();
+                            text.Span(" / ");
+                            text.TotalPages();
+                        });
+                    })).GeneratePdf(sfd.FileName);
+
                     MessageBox.Show($"Đã xuất file báo cáo thành công tại:\n{sfd.FileName}", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
