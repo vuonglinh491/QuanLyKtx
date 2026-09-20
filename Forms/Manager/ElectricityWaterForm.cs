@@ -34,6 +34,7 @@ namespace QuanLyKtx.Forms.Manager
 
         private void SetupDataGridViewStyle()
         {
+            DataGridViewHelper.Configure(dgvElecWater);
             dgvElecWater.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             dgvElecWater.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
             dgvElecWater.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
@@ -103,7 +104,6 @@ namespace QuanLyKtx.Forms.Manager
                 }
                 if (dgvElecWater.Columns["Tổng tiền (đ)"] != null)
                 {
-                    dgvElecWater.Columns["Tổng tiền (đ)"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
                     dgvElecWater.Columns["Tổng tiền (đ)"].DefaultCellStyle.Format = "N0";
                 }
             }

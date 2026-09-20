@@ -31,7 +31,8 @@ namespace QuanLyKtx.Forms.Student
             try
             {
                 string sql = @"
-                    SELECT StudentCode, FullName, DateOfBirth, Gender, Phone, Email, Address, ClassName, Major, Faculty
+                          SELECT StudentCode, FullName, DateOfBirth, Gender, Phone, Email, Address, ClassName,
+                              N'Chưa cập nhật' AS Major, Faculty
                     FROM dbo.Students
                     WHERE StudentID = @StudentID";
 

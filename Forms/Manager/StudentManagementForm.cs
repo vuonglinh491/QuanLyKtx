@@ -29,6 +29,8 @@ namespace QuanLyKtx.Forms.Manager
 
         private void SetupDataGridViewStyle()
         {
+            DataGridViewHelper.Configure(dgvStudents);
+            ScrollableControlHelper.Configure(grpInfo);
             dgvStudents.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             dgvStudents.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
             dgvStudents.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
@@ -54,15 +56,7 @@ namespace QuanLyKtx.Forms.Manager
                     dgvStudents.Columns["DateOfBirth"].Visible = false;
                 }
 
-                // Thiết lập độ rộng cột hợp lý
-                if (dgvStudents.Columns["Mã SV"] != null) dgvStudents.Columns["Mã SV"].Width = 85;
-                if (dgvStudents.Columns["Họ và tên"] != null) dgvStudents.Columns["Họ và tên"].Width = 150;
-                if (dgvStudents.Columns["Ngày sinh"] != null) dgvStudents.Columns["Ngày sinh"].Width = 95;
-                if (dgvStudents.Columns["Giới tính"] != null) dgvStudents.Columns["Giới tính"].Width = 80;
-                if (dgvStudents.Columns["Số điện thoại"] != null) dgvStudents.Columns["Số điện thoại"].Width = 110;
-                if (dgvStudents.Columns["Email"] != null) dgvStudents.Columns["Email"].Width = 160;
-                if (dgvStudents.Columns["Lớp"] != null) dgvStudents.Columns["Lớp"].Width = 90;
-                if (dgvStudents.Columns["Khoa"] != null) dgvStudents.Columns["Khoa"].Width = 140;
+                ConfigureStudentGrid();
             }
             catch (Exception ex)
             {
@@ -77,11 +71,34 @@ namespace QuanLyKtx.Forms.Manager
                 string kw = txtSearch.Text.Trim();
                 var table = _studentService.SearchStudents(kw);
                 dgvStudents.DataSource = table;
+                ConfigureStudentGrid();
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Lỗi khi tìm kiếm: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void ConfigureStudentGrid()
+        {
+            if (dgvStudents.Columns.Count == 0) return;
+
+            dgvStudents.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+            dgvStudents.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+            dgvStudents.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
+            dgvStudents.AllowUserToResizeRows = false;
+
+            string[] columnNames = { "Mã SV", "Họ và tên", "Ngày sinh", "Giới tính", "Số điện thoại", "Email", "Lớp", "Khoa", "Địa chỉ" };
+            int[] columnWidths = { 78, 145, 82, 70, 105, 165, 80, 125, 150 };
+            for (int index = 0; index < columnNames.Length; index++)
+            {
+                if (dgvStudents.Columns[columnNames[index]] != null)
+                {
+                    dgvStudents.Columns[columnNames[index]].Width = columnWidths[index];
+                }
+            }
+
+            dgvStudents.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCells);
         }
 
         private void txtSearch_KeyDown(object? sender, KeyEventArgs e)

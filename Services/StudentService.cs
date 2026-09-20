@@ -139,6 +139,44 @@ namespace QuanLyKtx.Services
 
                     DatabaseHelper.ExecuteNonQuery(insertUserSql, conn, tran, userParams);
                 }
+                else
+                {
+                    string checkExistingUserSql = @"
+                        SELECT COUNT(1)
+                        FROM dbo.Users
+                        WHERE Username = @Username
+                          AND Role = 'SinhVien'
+                          AND StudentID IS NULL";
+
+                    var reusableUser = DatabaseHelper.ExecuteScalar(
+                        checkExistingUserSql,
+                        conn,
+                        tran,
+                        new[] { new SqlParameter("@Username", username) });
+
+                    if (reusableUser == null || Convert.ToInt32(reusableUser) == 0)
+                    {
+                        throw new InvalidOperationException("Tên đăng nhập này đang được sử dụng bởi một tài khoản khác.");
+                    }
+
+                    string restoreUserSql = @"
+                        UPDATE dbo.Users
+                        SET PasswordHash = @PasswordHash,
+                            FullName = @FullName,
+                            StudentID = @StudentID,
+                            IsActive = 1
+                        WHERE Username = @Username";
+
+                    var restoreUserParams = new SqlParameter[]
+                    {
+                        new SqlParameter("@Username", username),
+                        new SqlParameter("@PasswordHash", passwordHash),
+                        new SqlParameter("@FullName", student.FullName.Trim()),
+                        new SqlParameter("@StudentID", newStudentId)
+                    };
+
+                    DatabaseHelper.ExecuteNonQuery(restoreUserSql, conn, tran, restoreUserParams);
+                }
 
                 tran.Commit();
                 return true;
@@ -235,9 +273,27 @@ namespace QuanLyKtx.Services
 
             try
             {
-                string sql = "DELETE FROM dbo.Students WHERE StudentID = @StudentID";
-                int rows = DatabaseHelper.ExecuteNonQuery(sql, new[] { new SqlParameter("@StudentID", studentId) });
-                return rows > 0;
+                using var conn = DatabaseConnection.GetConnection();
+                conn.Open();
+                using var tran = conn.BeginTransaction();
+
+                try
+                {
+                    var parameter = new[] { new SqlParameter("@StudentID", studentId) };
+                    DatabaseHelper.ExecuteNonQuery(
+                        "UPDATE dbo.Users SET StudentID = NULL, IsActive = 0 WHERE StudentID = @StudentID",
+                        conn,
+                        tran,
+                        parameter);
+                    int rows = DatabaseHelper.ExecuteNonQuery("DELETE FROM dbo.Students WHERE StudentID = @StudentID", conn, tran, parameter);
+                    tran.Commit();
+                    return rows > 0;
+                }
+                catch
+                {
+                    tran.Rollback();
+                    throw;
+                }
             }
             catch (Exception ex)
             {

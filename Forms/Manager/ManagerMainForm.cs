@@ -152,9 +152,9 @@ namespace QuanLyKtx.Forms.Manager
                 AllowUserToDeleteRows = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 MultiSelect = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None,
+                AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells,
                 RowHeadersVisible = false,
-                RowTemplate = { Height = 32 },
                 ColumnHeadersHeight = 36,
                 EnableHeadersVisualStyles = false,
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Regular)
@@ -162,6 +162,7 @@ namespace QuanLyKtx.Forms.Manager
             dgvStaying.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             dgvStaying.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
             dgvStaying.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
+            ConfigureDashboardGrid(dgvStaying, new[] { 75, 145, 75, 115, 100 });
 
             // Bảng 2: Yêu cầu của sinh viên cần duyệt
             var lblRequestsTitle = new Label
@@ -185,9 +186,9 @@ namespace QuanLyKtx.Forms.Manager
                 AllowUserToDeleteRows = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 MultiSelect = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None,
+                AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells,
                 RowHeadersVisible = false,
-                RowTemplate = { Height = 32 },
                 ColumnHeadersHeight = 36,
                 EnableHeadersVisualStyles = false,
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Regular)
@@ -195,6 +196,7 @@ namespace QuanLyKtx.Forms.Manager
             dgvRequests.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             dgvRequests.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
             dgvRequests.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
+            ConfigureDashboardGrid(dgvRequests, new[] { 75, 135, 115, 85, 100 });
 
             pnlContent.Controls.Add(dgvStaying);
             pnlContent.Controls.Add(dgvRequests);
@@ -245,6 +247,34 @@ namespace QuanLyKtx.Forms.Manager
             {
                 MessageBox.Show("Lỗi hiển thị danh sách: " + ex.Message);
             }
+        }
+
+        private static void ConfigureDashboardGrid(DataGridView grid, int[] columnWidths)
+        {
+            grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+            grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
+            grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
+            grid.AllowUserToResizeRows = false;
+
+            grid.DataBindingComplete += (sender, _) =>
+            {
+                if (sender is not DataGridView boundGrid) return;
+
+                for (int index = 0; index < boundGrid.Columns.Count && index < columnWidths.Length; index++)
+                {
+                    boundGrid.Columns[index].Width = columnWidths[index];
+                }
+
+                boundGrid.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCells);
+            };
+
+            grid.CellToolTipTextNeeded += (sender, eventArgs) =>
+            {
+                if (sender is DataGridView boundGrid && eventArgs.RowIndex >= 0 && eventArgs.ColumnIndex >= 0)
+                {
+                    eventArgs.ToolTipText = boundGrid.Rows[eventArgs.RowIndex].Cells[eventArgs.ColumnIndex].Value?.ToString();
+                }
+            };
         }
 
         private void CreateStatCard(string title, string mainVal, string subVal, Color accentColor, int x, int y)

@@ -30,6 +30,7 @@ namespace QuanLyKtx.Forms.Manager
         private System.Windows.Forms.Button btnEdit;
         private System.Windows.Forms.Button btnDelete;
         private System.Windows.Forms.Button btnClear;
+        private System.Windows.Forms.Panel pnlInfoScroll;
         private System.Windows.Forms.GroupBox grpList;
         private System.Windows.Forms.DataGridView dgvElecWater;
 
@@ -53,6 +54,7 @@ namespace QuanLyKtx.Forms.Manager
             cboFilterMonth = new System.Windows.Forms.ComboBox();
             lblFilterMonth = new System.Windows.Forms.Label();
             grpInfo = new System.Windows.Forms.GroupBox();
+            pnlInfoScroll = new System.Windows.Forms.Panel();
             btnClear = new System.Windows.Forms.Button();
             btnDelete = new System.Windows.Forms.Button();
             btnEdit = new System.Windows.Forms.Button();
@@ -206,16 +208,27 @@ namespace QuanLyKtx.Forms.Manager
             grpInfo.Controls.Add(lblMonthYear);
             grpInfo.Controls.Add(cboRoom);
             grpInfo.Controls.Add(lblRoom);
-            grpInfo.Dock = System.Windows.Forms.DockStyle.Left;
+            grpInfo.Dock = System.Windows.Forms.DockStyle.Top;
             grpInfo.Font = new System.Drawing.Font("Segoe UI", 10.5F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             grpInfo.ForeColor = System.Drawing.Color.FromArgb(30, 41, 59);
             grpInfo.Location = new System.Drawing.Point(0, 56);
             grpInfo.Name = "grpInfo";
             grpInfo.Padding = new System.Windows.Forms.Padding(12);
-            grpInfo.Size = new System.Drawing.Size(340, 634);
+            grpInfo.Size = new System.Drawing.Size(340, 680);
             grpInfo.TabIndex = 1;
             grpInfo.TabStop = false;
             grpInfo.Text = "Chỉ số điện nước";
+            // 
+            // pnlInfoScroll
+            // 
+            pnlInfoScroll.AutoScroll = true;
+            pnlInfoScroll.BackColor = System.Drawing.Color.White;
+            pnlInfoScroll.Controls.Add(grpInfo);
+            pnlInfoScroll.Dock = System.Windows.Forms.DockStyle.Left;
+            pnlInfoScroll.Location = new System.Drawing.Point(0, 56);
+            pnlInfoScroll.Name = "pnlInfoScroll";
+            pnlInfoScroll.Size = new System.Drawing.Size(340, 634);
+            pnlInfoScroll.TabIndex = 1;
             // 
             // btnClear
             // 
@@ -469,7 +482,7 @@ namespace QuanLyKtx.Forms.Manager
             BackColor = System.Drawing.Color.FromArgb(245, 247, 250);
             ClientSize = new System.Drawing.Size(1010, 690);
             Controls.Add(grpList);
-            Controls.Add(grpInfo);
+            Controls.Add(pnlInfoScroll);
             Controls.Add(pnlFilter);
             Name = "ElectricityWaterForm";
             Text = "Quản lý Điện nước";
@@ -478,6 +491,7 @@ namespace QuanLyKtx.Forms.Manager
             pnlFilter.PerformLayout();
             grpInfo.ResumeLayout(false);
             grpInfo.PerformLayout();
+            pnlInfoScroll.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)nudYear).EndInit();
             ((System.ComponentModel.ISupportInitialize)nudMonth).EndInit();
             grpList.ResumeLayout(false);

@@ -44,6 +44,16 @@ namespace QuanLyKtx.Services
             }
 
             var row = table.Rows[0];
+            string role = row["Role"].ToString() ?? string.Empty;
+            bool isStudentWithoutRecord = role.Equals("SinhVien", StringComparison.OrdinalIgnoreCase)
+                && row["StudentID"] == DBNull.Value;
+
+            if (isStudentWithoutRecord)
+            {
+                errorMessage = "Tài khoản này không còn nằm trong danh sách sinh viên ở ký túc xá.";
+                return null;
+            }
+
             bool isActive = Convert.ToBoolean(row["IsActive"]);
             if (!isActive)
             {
@@ -65,7 +75,7 @@ namespace QuanLyKtx.Services
                 Username = row["Username"].ToString() ?? string.Empty,
                 PasswordHash = storedHash,
                 FullName = row["FullName"].ToString() ?? string.Empty,
-                Role = row["Role"].ToString() ?? string.Empty,
+                Role = role,
                 StudentID = row["StudentID"] == DBNull.Value ? null : Convert.ToInt32(row["StudentID"]),
                 IsActive = isActive,
                 CreatedAt = Convert.ToDateTime(row["CreatedAt"])

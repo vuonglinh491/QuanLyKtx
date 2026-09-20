@@ -30,6 +30,8 @@ namespace QuanLyKtx.Forms.Student
 
         private void SetupDataGridViewStyle()
         {
+            DataGridViewHelper.Configure(dgvMyRequests);
+            ScrollableControlHelper.Configure(grpSubmit, 620);
             dgvMyRequests.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             dgvMyRequests.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
             dgvMyRequests.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);

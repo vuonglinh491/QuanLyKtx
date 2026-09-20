@@ -26,6 +26,8 @@ namespace QuanLyKtx.Forms.Manager
 
         private void SetupDataGridViewStyle()
         {
+            DataGridViewHelper.Configure(dgvBuildings);
+            ScrollableControlHelper.Configure(grpInfo);
             dgvBuildings.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             dgvBuildings.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
             dgvBuildings.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
@@ -46,7 +48,6 @@ namespace QuanLyKtx.Forms.Manager
                 if (dgvBuildings.Columns["Tổng số phòng"] != null) dgvBuildings.Columns["Tổng số phòng"].Width = 110;
                 if (dgvBuildings.Columns["Tổng sức chứa"] != null) dgvBuildings.Columns["Tổng sức chứa"].Width = 110;
                 if (dgvBuildings.Columns["Đang ở"] != null) dgvBuildings.Columns["Đang ở"].Width = 90;
-                if (dgvBuildings.Columns["Mô tả"] != null) dgvBuildings.Columns["Mô tả"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             }
             catch (Exception ex)
             {

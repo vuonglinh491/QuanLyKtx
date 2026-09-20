@@ -6,6 +6,7 @@ using System.Text;
 using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
 using QuanLyKtx.Data;
+using QuanLyKtx.Utils;
 
 namespace QuanLyKtx.Forms.Manager
 {
@@ -28,6 +29,7 @@ namespace QuanLyKtx.Forms.Manager
             DataGridView[] grids = { dgvRevenue, dgvOccupancy, dgvViolations };
             foreach (var dgv in grids)
             {
+                DataGridViewHelper.Configure(dgv);
                 dgv.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
                 dgv.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
                 dgv.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
@@ -176,7 +178,7 @@ namespace QuanLyKtx.Forms.Manager
                 string sql = @"
                     SELECT 
                         b.BuildingName AS [Tòa nhà],
-                        CASE b.Gender WHEN 'Male' THEN N'Nam' WHEN 'Female' THEN N'Nữ' ELSE b.Gender END AS [Dành cho],
+                        N'Tất cả' AS [Dành cho],
                         COUNT(r.RoomID) AS [Tổng số phòng],
                         ISNULL(SUM(r.Capacity), 0) AS [Tổng sức chứa (chỗ)],
                         ISNULL(SUM(r.CurrentOccupancy), 0) AS [Đang lưu trú (SV)],
@@ -187,7 +189,7 @@ namespace QuanLyKtx.Forms.Manager
                         END AS [Tỷ lệ lấp đầy]
                     FROM dbo.Buildings b
                     LEFT JOIN dbo.Rooms r ON b.BuildingID = r.BuildingID
-                    GROUP BY b.BuildingID, b.BuildingName, b.Gender
+                    GROUP BY b.BuildingID, b.BuildingName
                     ORDER BY b.BuildingName";
 
                 var dt = DatabaseHelper.ExecuteQuery(sql);

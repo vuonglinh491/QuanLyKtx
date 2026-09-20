@@ -3,6 +3,7 @@ using System.Data;
 using System.Drawing;
 using System.Windows.Forms;
 using QuanLyKtx.Services;
+using QuanLyKtx.Utils;
 
 namespace QuanLyKtx.Forms.Manager
 {
@@ -33,6 +34,8 @@ namespace QuanLyKtx.Forms.Manager
 
         private void SetupDataGridViewStyle()
         {
+            DataGridViewHelper.Configure(dgvAssignments);
+            ScrollableControlHelper.Configure(pnlLeft);
             dgvAssignments.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             dgvAssignments.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
             dgvAssignments.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
@@ -95,7 +98,6 @@ namespace QuanLyKtx.Forms.Manager
                 if (dgvAssignments.Columns["Số phòng"] != null) dgvAssignments.Columns["Số phòng"].Width = 80;
                 if (dgvAssignments.Columns["Ngày vào ở"] != null) dgvAssignments.Columns["Ngày vào ở"].Width = 95;
                 if (dgvAssignments.Columns["Ngày kết thúc"] != null) dgvAssignments.Columns["Ngày kết thúc"].Width = 105;
-                if (dgvAssignments.Columns["Trạng thái"] != null) dgvAssignments.Columns["Trạng thái"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             }
             catch (Exception ex)
             {

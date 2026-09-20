@@ -27,6 +27,7 @@ namespace QuanLyKtx.Forms.Student
 
         private void SetupDataGridViewStyle()
         {
+            DataGridViewHelper.Configure(dgvBills);
             dgvBills.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             dgvBills.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
             dgvBills.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);

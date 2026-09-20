@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using QuanLyKtx.Data;
 using QuanLyKtx.Models;
 using QuanLyKtx.Services;
+using QuanLyKtx.Utils;
 using StudentModel = QuanLyKtx.Models.Student;
 
 namespace QuanLyKtx.Forms.Manager
@@ -43,6 +44,8 @@ namespace QuanLyKtx.Forms.Manager
 
         private void SetupDataGridViewStyle()
         {
+            DataGridViewHelper.Configure(dgvViolations);
+            ScrollableControlHelper.Configure(grpInfo);
             dgvViolations.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             dgvViolations.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
             dgvViolations.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);

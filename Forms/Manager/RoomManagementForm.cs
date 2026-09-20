@@ -32,6 +32,8 @@ namespace QuanLyKtx.Forms.Manager
 
         private void SetupDataGridViewStyle()
         {
+            DataGridViewHelper.Configure(dgvRooms);
+            ScrollableControlHelper.Configure(grpInfo);
             dgvRooms.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             dgvRooms.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
             dgvRooms.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
@@ -106,7 +108,6 @@ namespace QuanLyKtx.Forms.Manager
                     dgvRooms.Columns["Giá thuê (VNĐ)"].Width = 120;
                     dgvRooms.Columns["Giá thuê (VNĐ)"].DefaultCellStyle.Format = "N0";
                 }
-                if (dgvRooms.Columns["Trạng thái"] != null) dgvRooms.Columns["Trạng thái"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             }
             catch (Exception ex)
             {

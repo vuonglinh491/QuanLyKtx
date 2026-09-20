@@ -36,6 +36,8 @@ namespace QuanLyKtx.Forms.Manager
 
         private void SetupDataGridViewStyle()
         {
+            DataGridViewHelper.Configure(dgvPayments);
+            ScrollableControlHelper.Configure(grpInfo);
             dgvPayments.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             dgvPayments.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
             dgvPayments.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
@@ -118,7 +120,6 @@ namespace QuanLyKtx.Forms.Manager
                     dgvPayments.Columns["Số tiền (đ)"].DefaultCellStyle.Format = "N0";
                 }
                 if (dgvPayments.Columns["Trạng thái"] != null) dgvPayments.Columns["Trạng thái"].Width = 110;
-                if (dgvPayments.Columns["Nội dung"] != null) dgvPayments.Columns["Nội dung"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             }
             catch (Exception ex)
             {
