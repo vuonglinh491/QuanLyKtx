@@ -19,7 +19,7 @@ namespace QuanLyKtx.Forms.Manager
 
         private void ManagerMainForm_Load(object? sender, EventArgs e)
         {
-            lblWelcome.Text = $"Xin chào: {Session.FullName} ({Session.Username})";
+            lblWelcome.Text = $"👤  {Session.FullName} ({Session.Username})  •  Quản trị viên";
             HighlightButton(btnDashboard);
             ShowDashboardView();
         }
@@ -28,12 +28,14 @@ namespace QuanLyKtx.Forms.Manager
         {
             if (currentButton != null)
             {
-                currentButton.BackColor = Color.FromArgb(30, 41, 59);
-                currentButton.Font = new Font("Segoe UI", 10.5F, FontStyle.Regular);
+                currentButton.BackColor = Color.FromArgb(15, 23, 42);
+                currentButton.ForeColor = Color.FromArgb(203, 213, 225);
+                currentButton.Font = new Font("Segoe UI", 10F, FontStyle.Regular);
             }
             currentButton = btn;
-            currentButton.BackColor = Color.FromArgb(15, 23, 42);
-            currentButton.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
+            currentButton.BackColor = Color.FromArgb(37, 99, 235);
+            currentButton.ForeColor = Color.White;
+            currentButton.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
         }
 
         public void OpenChildForm(Form childForm)
@@ -70,8 +72,8 @@ namespace QuanLyKtx.Forms.Manager
             var lblTitle = new Label
             {
                 Text = "BẢNG ĐIỀU KHIỂN QUẢN TRỊ KÝ TÚC XÁ",
-                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(30, 41, 59),
+                Font = new Font("Segoe UI", 15F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(15, 23, 42),
                 Location = new Point(25, 20),
                 AutoSize = true
             };
@@ -79,15 +81,11 @@ namespace QuanLyKtx.Forms.Manager
 
             var btnRefresh = new Button
             {
-                Text = "Làm mới dữ liệu",
-                Font = new Font("Segoe UI", 9.5F, FontStyle.Regular),
-                BackColor = Color.White,
-                ForeColor = Color.FromArgb(30, 41, 59),
-                FlatStyle = FlatStyle.Flat,
-                Size = new Size(130, 32),
-                Location = new Point(830, 20),
+                Size = new Size(150, 34),
+                Location = new Point(810, 18),
                 Cursor = Cursors.Hand
             };
+            UITheme.ApplySecondaryButton(btnRefresh, "🔄  Làm mới dữ liệu");
             btnRefresh.Click += (s, ev) => ShowDashboardView();
             pnlContent.Controls.Add(btnRefresh);
 
@@ -125,10 +123,10 @@ namespace QuanLyKtx.Forms.Manager
             }
 
             // Hiển thị các Card thống kê nhanh
-            CreateStatCard("Tổng sinh viên", $"{totalStudents} SV", $"{stayingStudents} đang ở KTX", Color.FromArgb(37, 99, 235), 25, 65);
-            CreateStatCard("Tổng số phòng", $"{totalRooms} phòng", $"{availableRooms} phòng còn trống", Color.FromArgb(16, 185, 129), 270, 65);
-            CreateStatCard("Yêu cầu chờ duyệt", $"{pendingRequests} đơn", "Cần quản lý xử lý", Color.FromArgb(239, 68, 68), 515, 65);
-            CreateStatCard("Vi phạm chưa nộp", $"{unpaidViolations} vụ", "Chờ xử lý kỷ luật", Color.FromArgb(245, 158, 11), 760, 65);
+            CreateStatCard("Tổng sinh viên", $"{totalStudents} SV", $"{stayingStudents} đang ở KTX", Color.FromArgb(37, 99, 235), "👥", 25, 65);
+            CreateStatCard("Tổng số phòng", $"{totalRooms} phòng", $"{availableRooms} phòng còn trống", Color.FromArgb(16, 185, 129), "🏢", 270, 65);
+            CreateStatCard("Yêu cầu chờ duyệt", $"{pendingRequests} đơn", "Cần quản lý xử lý", Color.FromArgb(239, 68, 68), "📩", 515, 65);
+            CreateStatCard("Vi phạm chưa nộp", $"{unpaidViolations} vụ", "Chờ xử lý kỷ luật", Color.FromArgb(245, 158, 11), "⚠️", 760, 65);
 
             // Bảng 1: Sinh viên đang lưu trú gần đây
             var lblStayingTitle = new Label
@@ -146,22 +144,14 @@ namespace QuanLyKtx.Forms.Manager
                 Location = new Point(25, 230),
                 Size = new Size(465, 420),
                 BackgroundColor = Color.White,
-                BorderStyle = BorderStyle.Fixed3D,
+                BorderStyle = BorderStyle.FixedSingle,
                 ReadOnly = true,
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                MultiSelect = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None,
-                AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells,
-                RowHeadersVisible = false,
-                ColumnHeadersHeight = 36,
-                EnableHeadersVisualStyles = false,
-                Font = new Font("Segoe UI", 9.5F, FontStyle.Regular)
+                MultiSelect = false
             };
-            dgvStaying.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvStaying.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvStaying.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
+            DataGridViewHelper.Configure(dgvStaying);
             ConfigureDashboardGrid(dgvStaying, new[] { 75, 145, 75, 115, 100 });
 
             // Bảng 2: Yêu cầu của sinh viên cần duyệt
@@ -180,22 +170,14 @@ namespace QuanLyKtx.Forms.Manager
                 Location = new Point(515, 230),
                 Size = new Size(465, 420),
                 BackgroundColor = Color.White,
-                BorderStyle = BorderStyle.Fixed3D,
+                BorderStyle = BorderStyle.FixedSingle,
                 ReadOnly = true,
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                MultiSelect = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None,
-                AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells,
-                RowHeadersVisible = false,
-                ColumnHeadersHeight = 36,
-                EnableHeadersVisualStyles = false,
-                Font = new Font("Segoe UI", 9.5F, FontStyle.Regular)
+                MultiSelect = false
             };
-            dgvRequests.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvRequests.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvRequests.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
+            DataGridViewHelper.Configure(dgvRequests);
             ConfigureDashboardGrid(dgvRequests, new[] { 75, 135, 115, 85, 100 });
 
             pnlContent.Controls.Add(dgvStaying);
@@ -277,11 +259,11 @@ namespace QuanLyKtx.Forms.Manager
             };
         }
 
-        private void CreateStatCard(string title, string mainVal, string subVal, Color accentColor, int x, int y)
+        private void CreateStatCard(string title, string mainVal, string subVal, Color accentColor, string icon, int x, int y)
         {
             var pnl = new Panel
             {
-                Size = new Size(225, 110),
+                Size = new Size(230, 115),
                 Location = new Point(x, y),
                 BackColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle
@@ -289,17 +271,26 @@ namespace QuanLyKtx.Forms.Manager
 
             var bar = new Panel
             {
-                Size = new Size(225, 5),
+                Size = new Size(230, 4),
                 Dock = DockStyle.Top,
                 BackColor = accentColor
             };
 
+            var lblIcon = new Label
+            {
+                Text = icon,
+                Font = new Font("Segoe UI Emoji", 18F),
+                Location = new Point(175, 14),
+                Size = new Size(45, 45),
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+
             var lblT = new Label
             {
-                Text = title,
-                Font = new Font("Segoe UI", 9.5F, FontStyle.Regular),
+                Text = title.ToUpper(),
+                Font = new Font("Segoe UI", 8F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(100, 116, 139),
-                Location = new Point(15, 14),
+                Location = new Point(14, 14),
                 AutoSize = true
             };
 
@@ -308,20 +299,21 @@ namespace QuanLyKtx.Forms.Manager
                 Text = mainVal,
                 Font = new Font("Segoe UI", 16F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(15, 23, 42),
-                Location = new Point(15, 40),
+                Location = new Point(12, 36),
                 AutoSize = true
             };
 
             var lblSub = new Label
             {
-                Text = subVal,
-                Font = new Font("Segoe UI", 8.5F, FontStyle.Italic),
-                ForeColor = Color.FromArgb(100, 116, 139),
-                Location = new Point(15, 80),
+                Text = "• " + subVal,
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Regular),
+                ForeColor = accentColor,
+                Location = new Point(14, 82),
                 AutoSize = true
             };
 
             pnl.Controls.Add(bar);
+            pnl.Controls.Add(lblIcon);
             pnl.Controls.Add(lblT);
             pnl.Controls.Add(lblV);
             pnl.Controls.Add(lblSub);

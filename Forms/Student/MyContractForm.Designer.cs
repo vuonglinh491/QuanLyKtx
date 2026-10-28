@@ -330,7 +330,7 @@ namespace QuanLyKtx.Forms.Student
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            BackColor = Color.FromArgb(245, 247, 250);
+            BackColor = Color.FromArgb(248, 250, 252);
             ClientSize = new Size(1154, 853);
             Controls.Add(lblNoContract);
             Controls.Add(grpHistory);

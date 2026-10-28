@@ -43,7 +43,16 @@ namespace QuanLyKtx.Forms.Student
 
         private void QRPaymentForm_Load(object? sender, EventArgs e)
         {
+            ApplyUITheme();
             PopulateInfo();
+        }
+
+        private void ApplyUITheme()
+        {
+            UITheme.ApplyPrimaryButton(btnGenerateQR, "📱  Tạo mã QR VietQR");
+            UITheme.ApplySecondaryButton(btnSaveQR, "💾  Lưu ảnh QR");
+            UITheme.ApplySuccessButton(btnMarkPaid, "✅  Đã chuyển khoản xong");
+            UITheme.ApplySecondaryButton(btnClose, "Đóng");
         }
 
         // ─────────────────────────────────────────────────────────────

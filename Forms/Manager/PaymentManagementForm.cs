@@ -23,6 +23,7 @@ namespace QuanLyKtx.Forms.Manager
 
         private void PaymentManagementForm_Load(object? sender, EventArgs e)
         {
+            ApplyUITheme();
             SetupDataGridViewStyle();
             cboFilterMonth.SelectedIndex = 0;
             cboFilterYear.SelectedIndex = 0;
@@ -34,16 +35,21 @@ namespace QuanLyKtx.Forms.Manager
             LoadPayments();
         }
 
+        private void ApplyUITheme()
+        {
+            UITheme.ApplySuccessButton(btnAdd, "➕  Tạo phiếu");
+            UITheme.ApplyWarningButton(btnEdit, "✏️  Cập nhật");
+            UITheme.ApplySuccessButton(btnConfirmPaid, "✅  Duyệt nộp tiền");
+            UITheme.ApplyDangerButton(btnDelete, "🗑️  Xóa phiếu");
+            UITheme.ApplySecondaryButton(btnClear, "🧹  Xóa trắng");
+            UITheme.ApplyPrimaryButton(btnSearch, "🔍  Tìm");
+            UITheme.ApplySecondaryButton(btnRefresh, "🔄  Làm mới");
+        }
+
         private void SetupDataGridViewStyle()
         {
             DataGridViewHelper.Configure(dgvPayments);
             ScrollableControlHelper.Configure(grpInfo);
-            dgvPayments.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvPayments.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvPayments.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
-            dgvPayments.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-            dgvPayments.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
-            dgvPayments.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
         }
 
         private void LoadDropdowns()

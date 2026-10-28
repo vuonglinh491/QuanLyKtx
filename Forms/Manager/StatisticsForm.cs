@@ -21,9 +21,16 @@ namespace QuanLyKtx.Forms.Manager
 
         private void StatisticsForm_Load(object? sender, EventArgs e)
         {
+            ApplyUITheme();
             SetupDataGridViewStyles();
             LoadYears();
             LoadAllStatistics();
+        }
+
+        private void ApplyUITheme()
+        {
+            UITheme.ApplySuccessButton(btnExportCsv, "📄  Xuất file PDF");
+            UITheme.ApplyPrimaryButton(btnRefresh, "📊  Xem báo cáo");
         }
 
         private void SetupDataGridViewStyles()
@@ -32,12 +39,6 @@ namespace QuanLyKtx.Forms.Manager
             foreach (var dgv in grids)
             {
                 DataGridViewHelper.Configure(dgv);
-                dgv.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-                dgv.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-                dgv.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
-                dgv.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-                dgv.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
-                dgv.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
             }
         }
 

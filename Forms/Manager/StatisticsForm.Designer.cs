@@ -155,7 +155,7 @@ namespace QuanLyKtx.Forms.Manager
             // 
             // pnlCards
             // 
-            pnlCards.BackColor = System.Drawing.Color.FromArgb(245, 247, 250);
+            pnlCards.BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
             pnlCards.Controls.Add(pnlCardOccupancy);
             pnlCards.Controls.Add(pnlCardUtilityRevenue);
             pnlCards.Controls.Add(pnlCardRoomRevenue);

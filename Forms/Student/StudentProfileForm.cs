@@ -17,7 +17,14 @@ namespace QuanLyKtx.Forms.Student
 
         private void StudentProfileForm_Load(object? sender, EventArgs e)
         {
+            ApplyUITheme();
             LoadStudentData();
+        }
+
+        private void ApplyUITheme()
+        {
+            UITheme.ApplyPrimaryButton(btnSaveContact, "💾  Lưu thông tin liên hệ");
+            UITheme.ApplyWarningButton(btnChangePassword, "🔑  Xác nhận đổi mật khẩu");
         }
 
         private void LoadStudentData()

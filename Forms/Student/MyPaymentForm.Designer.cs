@@ -288,7 +288,7 @@ namespace QuanLyKtx.Forms.Student
             // ── Form ───────────────────────────────────────────────────
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode       = System.Windows.Forms.AutoScaleMode.Font;
-            BackColor           = System.Drawing.Color.FromArgb(245, 247, 250);
+            BackColor           = System.Drawing.Color.FromArgb(248, 250, 252);
             ClientSize          = new System.Drawing.Size(1010, 640);
             Controls.Add(tabControl);
             Controls.Add(pnlHeader);

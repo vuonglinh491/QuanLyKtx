@@ -24,12 +24,6 @@ namespace QuanLyKtx.Forms.Student
         private void SetupDataGridViewStyle()
         {
             DataGridViewHelper.Configure(dgvContracts);
-            dgvContracts.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvContracts.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvContracts.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
-            dgvContracts.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-            dgvContracts.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
-            dgvContracts.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
         }
 
         private void LoadContractData()

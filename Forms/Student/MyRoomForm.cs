@@ -24,12 +24,6 @@ namespace QuanLyKtx.Forms.Student
         private void SetupDataGridViewStyle()
         {
             DataGridViewHelper.Configure(dgvRoommates);
-            dgvRoommates.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvRoommates.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvRoommates.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
-            dgvRoommates.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-            dgvRoommates.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
-            dgvRoommates.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
         }
 
         private void LoadRoomData()

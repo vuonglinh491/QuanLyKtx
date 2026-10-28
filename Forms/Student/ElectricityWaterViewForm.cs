@@ -19,21 +19,21 @@ namespace QuanLyKtx.Forms.Student
 
         private void ElectricityWaterViewForm_Load(object? sender, EventArgs e)
         {
+            ApplyUITheme();
             SetupDataGridViewStyle();
             LoadYearDropdown();
             LoadStudentRoom();
             LoadBills();
         }
 
+        private void ApplyUITheme()
+        {
+            UITheme.ApplySecondaryButton(btnRefresh, "🔄  Làm mới");
+        }
+
         private void SetupDataGridViewStyle()
         {
             DataGridViewHelper.Configure(dgvBills);
-            dgvBills.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvBills.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvBills.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
-            dgvBills.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-            dgvBills.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
-            dgvBills.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
         }
 
         private void LoadYearDropdown()

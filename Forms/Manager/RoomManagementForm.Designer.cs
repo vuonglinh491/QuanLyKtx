@@ -455,7 +455,7 @@ namespace QuanLyKtx.Forms.Manager
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            BackColor = System.Drawing.Color.FromArgb(245, 247, 250);
+            BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
             ClientSize = new System.Drawing.Size(1010, 690);
             Controls.Add(grpList);
             Controls.Add(grpInfo);

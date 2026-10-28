@@ -21,6 +21,7 @@ namespace QuanLyKtx.Forms.Student
 
         private void MyPaymentForm_Load(object? sender, EventArgs e)
         {
+            ApplyUITheme();
             SetupDataGridViewStyle();
             tabControl.SelectedIndex = 0;
             LoadSummaryCards();
@@ -28,23 +29,17 @@ namespace QuanLyKtx.Forms.Student
             LoadPendingPayments();
         }
 
+        private void ApplyUITheme()
+        {
+            UITheme.ApplySecondaryButton(btnRefresh, "🔄  Làm mới");
+            UITheme.ApplyPrimaryButton(btnCreateRequest, "➕  Tạo yêu cầu nộp phí");
+            UITheme.ApplySuccessButton(btnPayQR, "📱  Thanh toán QR");
+        }
+
         private void SetupDataGridViewStyle()
         {
             DataGridViewHelper.Configure(dgvPayments);
-            dgvPayments.ColumnHeadersDefaultCellStyle.Font      = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvPayments.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvPayments.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
-            dgvPayments.DefaultCellStyle.Font                   = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-            dgvPayments.DefaultCellStyle.SelectionBackColor     = Color.FromArgb(224, 238, 255);
-            dgvPayments.DefaultCellStyle.SelectionForeColor     = Color.FromArgb(15, 23, 42);
-
             DataGridViewHelper.Configure(dgvPending);
-            dgvPending.ColumnHeadersDefaultCellStyle.Font      = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvPending.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(255, 244, 220);
-            dgvPending.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(120, 60, 0);
-            dgvPending.DefaultCellStyle.Font                   = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-            dgvPending.DefaultCellStyle.SelectionBackColor     = Color.FromArgb(255, 235, 180);
-            dgvPending.DefaultCellStyle.SelectionForeColor     = Color.FromArgb(30, 41, 59);
         }
 
         // ─────────────────────────────────────────────────────────────
@@ -190,8 +185,8 @@ namespace QuanLyKtx.Forms.Student
             bool hasSelection = dgvPending.SelectedRows.Count > 0;
             btnPayQR.Enabled = hasSelection;
             btnPayQR.BackColor = hasSelection
-                ? Color.FromArgb(24, 119, 242)
-                : Color.FromArgb(180, 190, 210);
+                ? UITheme.Success
+                : Color.FromArgb(203, 213, 225);
         }
 
         // ─────────────────────────────────────────────────────────────

@@ -17,7 +17,7 @@ namespace QuanLyKtx.Forms.Student
 
         private void StudentMainForm_Load(object sender, EventArgs e)
         {
-            lblWelcome.Text = $"Xin chào: {Session.FullName}";
+            lblWelcome.Text = $"👤  {Session.FullName}  •  Sinh viên";
             HighlightButton(btnHome);
             ShowHomeView();
         }
@@ -27,10 +27,12 @@ namespace QuanLyKtx.Forms.Student
             if (currentButton != null)
             {
                 currentButton.BackColor = Color.FromArgb(15, 76, 129);
+                currentButton.ForeColor = Color.FromArgb(226, 232, 240);
                 currentButton.Font = new Font("Segoe UI", 10F, FontStyle.Regular);
             }
             currentButton = btn;
             currentButton.BackColor = Color.FromArgb(10, 50, 90);
+            currentButton.ForeColor = Color.White;
             currentButton.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
         }
 
@@ -57,70 +59,130 @@ namespace QuanLyKtx.Forms.Student
         {
             pnlContent.Controls.Clear();
 
+            var pnlHero = new Panel
+            {
+                Location = new Point(30, 20),
+                Size = new Size(740, 95),
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+
+            var heroBar = new Panel
+            {
+                Size = new Size(740, 4),
+                Dock = DockStyle.Top,
+                BackColor = Color.FromArgb(15, 76, 129)
+            };
+            pnlHero.Controls.Add(heroBar);
+
             var lblGreeting = new Label
             {
-                Text = $"Chào mừng bạn, {Session.FullName}!",
-                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                Text = $"👋 Xin chào, {Session.FullName}!",
+                Font = new Font("Segoe UI", 14.5F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(15, 76, 129),
-                Location = new Point(30, 25),
+                Location = new Point(20, 15),
                 AutoSize = true
             };
-            pnlContent.Controls.Add(lblGreeting);
+            pnlHero.Controls.Add(lblGreeting);
 
             var lblDesc = new Label
             {
-                Text = "Chào mừng bạn đến với Cổng thông tin ký túc xá trực tuyến. Hãy chọn chức năng bên trái để tra cứu thông tin cá nhân, phòng ở, hợp đồng, chỉ số điện nước và gửi yêu cầu đến ban quản lý.",
-                Font = new Font("Segoe UI", 10.5F),
-                ForeColor = Color.FromArgb(70, 70, 70),
-                Location = new Point(30, 65),
-                Size = new Size(700, 50)
+                Text = "Cổng thông tin sinh viên nội trú ký túc xá. Tra cứu phòng ở, hợp đồng, hóa đơn điện nước và gửi yêu cầu trực tuyến tới ban quản lý.",
+                Font = new Font("Segoe UI", 9.5F),
+                ForeColor = Color.FromArgb(71, 85, 105),
+                Location = new Point(20, 48),
+                Size = new Size(700, 36)
             };
-            pnlContent.Controls.Add(lblDesc);
+            pnlHero.Controls.Add(lblDesc);
+
+            pnlContent.Controls.Add(pnlHero);
 
             // Các nút truy cập nhanh
-            CreateShortcutCard("🏠 Phòng của tôi", "Tra cứu phòng đang ở & bạn cùng phòng", 30, 130, btnMyRoom_Click);
-            CreateShortcutCard("📄 Hợp đồng KTX", "Xem thời hạn hợp đồng và tiền phòng", 270, 130, btnMyContract_Click);
-            CreateShortcutCard("⚡ Điện nước", "Xem chỉ số và tiền điện nước tháng này", 510, 130, btnMyElecWater_Click);
-            CreateShortcutCard("💳 Thanh toán", "Xem các khoản phí cần đóng và lịch sử", 30, 260, btnMyPayments_Click);
-            CreateShortcutCard("📩 Gửi yêu cầu", "Đăng ký, chuyển phòng hoặc báo trả phòng", 270, 260, btnMyRequests_Click);
-            CreateShortcutCard("👤 Hồ sơ cá nhân", "Cập nhật số điện thoại, email, địa chỉ", 510, 260, btnProfile_Click);
+            CreateShortcutCard("🏠  Phòng của tôi", "Tra cứu phòng đang ở & bạn cùng phòng", 30, 135, btnMyRoom_Click);
+            CreateShortcutCard("📄  Hợp đồng KTX", "Xem thời hạn hợp đồng và tiền phòng", 280, 135, btnMyContract_Click);
+            CreateShortcutCard("⚡  Điện nước phòng", "Xem chỉ số và tiền điện nước tháng này", 530, 135, btnMyElecWater_Click);
+            CreateShortcutCard("💳  Hóa đơn & Nộp phí", "Xem các khoản phí cần đóng và thanh toán QR", 30, 270, btnMyPayments_Click);
+            CreateShortcutCard("📩  Gửi yêu cầu KTX", "Đăng ký, chuyển phòng hoặc báo trả phòng", 280, 270, btnMyRequests_Click);
+            CreateShortcutCard("👤  Hồ sơ cá nhân", "Cập nhật số điện thoại, email, địa chỉ liên hệ", 530, 270, btnProfile_Click);
         }
 
         private void CreateShortcutCard(string title, string desc, int x, int y, EventHandler onClick)
         {
             var pnl = new Panel
             {
-                Size = new Size(220, 110),
+                Size = new Size(230, 118),
                 Location = new Point(x, y),
                 BackColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle,
                 Cursor = Cursors.Hand
             };
 
+            var topStripe = new Panel
+            {
+                Size = new Size(230, 3),
+                Dock = DockStyle.Top,
+                BackColor = Color.FromArgb(37, 99, 235)
+            };
+            pnl.Controls.Add(topStripe);
+
             var lblT = new Label
             {
                 Text = title,
-                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 10.5F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(15, 76, 129),
-                Location = new Point(15, 15),
-                AutoSize = true
+                Location = new Point(14, 15),
+                AutoSize = true,
+                Cursor = Cursors.Hand
             };
 
             var lblD = new Label
             {
                 Text = desc,
-                Font = new Font("Segoe UI", 8.5F),
-                ForeColor = Color.Gray,
-                Location = new Point(15, 45),
-                Size = new Size(190, 50)
+                Font = new Font("Segoe UI", 8.75F),
+                ForeColor = Color.FromArgb(100, 116, 139),
+                Location = new Point(14, 42),
+                Size = new Size(202, 42),
+                Cursor = Cursors.Hand
+            };
+
+            var lblAction = new Label
+            {
+                Text = "Khám phá →",
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(37, 99, 235),
+                Location = new Point(14, 88),
+                AutoSize = true,
+                Cursor = Cursors.Hand
             };
 
             pnl.Controls.Add(lblT);
             pnl.Controls.Add(lblD);
+            pnl.Controls.Add(lblAction);
+
+            // Hiệu ứng hover tương tác
+            void OnEnter(object? s, EventArgs e)
+            {
+                pnl.BackColor = Color.FromArgb(240, 249, 255);
+            }
+            void OnLeave(object? s, EventArgs e)
+            {
+                pnl.BackColor = Color.White;
+            }
+
+            pnl.MouseEnter += OnEnter;
+            lblT.MouseEnter += OnEnter;
+            lblD.MouseEnter += OnEnter;
+            lblAction.MouseEnter += OnEnter;
+
+            pnl.MouseLeave += OnLeave;
+            lblT.MouseLeave += OnLeave;
+            lblD.MouseLeave += OnLeave;
+            lblAction.MouseLeave += OnLeave;
 
             pnl.Click += onClick;
             lblT.Click += onClick;
             lblD.Click += onClick;
+            lblAction.Click += onClick;
 
             pnlContent.Controls.Add(pnl);
         }

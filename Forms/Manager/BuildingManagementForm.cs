@@ -20,20 +20,23 @@ namespace QuanLyKtx.Forms.Manager
 
         private void BuildingManagementForm_Load(object? sender, EventArgs e)
         {
+            ApplyUITheme();
             SetupDataGridViewStyle();
             LoadBuildings();
+        }
+
+        private void ApplyUITheme()
+        {
+            UITheme.ApplySuccessButton(btnAdd, "➕  Thêm mới");
+            UITheme.ApplyWarningButton(btnEdit, "✏️  Cập nhật");
+            UITheme.ApplyDangerButton(btnDelete, "🗑️  Xóa khu");
+            UITheme.ApplySecondaryButton(btnClear, "🧹  Xóa trắng");
         }
 
         private void SetupDataGridViewStyle()
         {
             DataGridViewHelper.Configure(dgvBuildings);
             ScrollableControlHelper.Configure(grpInfo);
-            dgvBuildings.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvBuildings.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvBuildings.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
-            dgvBuildings.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-            dgvBuildings.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
-            dgvBuildings.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
         }
 
         private void LoadBuildings()
@@ -127,10 +130,11 @@ namespace QuanLyKtx.Forms.Manager
             }
 
             var confirm = MessageBox.Show(
-                $"Bạn có chắc chắn muốn xóa khu nhà [{txtBuildingName.Text}] không?",
-                "Xác nhận xóa",
+                $"Bạn có chắc chắn muốn xóa khu nhà [{txtBuildingName.Text}] không?\n(Lưu ý: Không thể xóa nếu khu nhà đang có phòng hoặc sinh viên)",
+                "Xác nhận xóa khu nhà",
                 MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button2);
 
             if (confirm == DialogResult.Yes)
             {

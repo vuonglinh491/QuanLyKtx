@@ -21,6 +21,7 @@ namespace QuanLyKtx.Forms.Manager
 
         private void ContractManagementForm_Load(object? sender, EventArgs e)
         {
+            ApplyUITheme();
             SetupDataGridViewStyle();
             cboFilterStatus.SelectedIndex = 0;
             cboStatus.SelectedIndex = 0;
@@ -30,16 +31,21 @@ namespace QuanLyKtx.Forms.Manager
             LoadContracts();
         }
 
+        private void ApplyUITheme()
+        {
+            UITheme.ApplySuccessButton(btnAdd, "➕  Tạo HĐ");
+            UITheme.ApplyWarningButton(btnEdit, "✏️  Cập nhật");
+            UITheme.ApplyWarningButton(btnTerminate, "⚠️  Thanh lý");
+            UITheme.ApplyDangerButton(btnDelete, "🗑️  Xóa HĐ");
+            UITheme.ApplySecondaryButton(btnClear, "🧹  Xóa trắng");
+            UITheme.ApplyPrimaryButton(btnSearch, "🔍  Tìm");
+            UITheme.ApplySecondaryButton(btnRefresh, "🔄  Làm mới");
+        }
+
         private void SetupDataGridViewStyle()
         {
             DataGridViewHelper.Configure(dgvContracts);
             ScrollableControlHelper.Configure(grpInfo);
-            dgvContracts.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvContracts.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvContracts.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
-            dgvContracts.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-            dgvContracts.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
-            dgvContracts.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
         }
 
         private void LoadDropdowns()

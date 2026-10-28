@@ -113,11 +113,23 @@ namespace QuanLyKtx.Data
 
         private static string GetDatabasePath()
         {
-#if DEBUG
-            return Path.Combine(Directory.GetCurrentDirectory(), "DormitoryDB.sqlite");
-#else
-            return Path.Combine(AppContext.BaseDirectory, "DormitoryDB.sqlite");
-#endif
+            // 1. Kiểm tra ngay cạnh file thực thi (AppContext.BaseDirectory)
+            string baseDirDb = Path.Combine(AppContext.BaseDirectory, "DormitoryDB.sqlite");
+            if (File.Exists(baseDirDb)) return baseDirDb;
+
+            // 2. Kiểm tra thư mục làm việc hiện tại (Directory.GetCurrentDirectory)
+            string currentDirDb = Path.Combine(Directory.GetCurrentDirectory(), "DormitoryDB.sqlite");
+            if (File.Exists(currentDirDb)) return currentDirDb;
+
+            // 3. Kiểm tra thư mục con QuanLyKtx-main (khi chạy từ thư mục root giải pháp)
+            string subDirDb = Path.Combine(Directory.GetCurrentDirectory(), "QuanLyKtx-main", "DormitoryDB.sqlite");
+            if (File.Exists(subDirDb)) return subDirDb;
+
+            // 4. Kiểm tra thư mục gốc dự án khi Debug trong Visual Studio (lùi 3 cấp từ bin/Debug/net8.0-windows)
+            string projectRootDb = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "DormitoryDB.sqlite"));
+            if (File.Exists(projectRootDb)) return projectRootDb;
+
+            return baseDirDb;
         }
     }
 }

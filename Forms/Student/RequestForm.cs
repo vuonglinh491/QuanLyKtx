@@ -21,6 +21,7 @@ namespace QuanLyKtx.Forms.Student
 
         private void RequestForm_Load(object? sender, EventArgs e)
         {
+            ApplyUITheme();
             SetupDataGridViewStyle();
             if (cboRequestType.Items.Count > 0)
                 cboRequestType.SelectedIndex = 0;
@@ -28,16 +29,17 @@ namespace QuanLyKtx.Forms.Student
             LoadMyRequests();
         }
 
+        private void ApplyUITheme()
+        {
+            UITheme.ApplyPrimaryButton(btnSubmit, "📩  Gửi yêu cầu");
+            UITheme.ApplySecondaryButton(btnClear, "🧹  Xóa trắng");
+            UITheme.ApplySecondaryButton(btnRefresh, "🔄  Làm mới");
+        }
+
         private void SetupDataGridViewStyle()
         {
             DataGridViewHelper.Configure(dgvMyRequests);
             ScrollableControlHelper.Configure(grpSubmit, 620);
-            dgvMyRequests.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvMyRequests.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvMyRequests.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
-            dgvMyRequests.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-            dgvMyRequests.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
-            dgvMyRequests.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
         }
 
         private void LoadMyRequests()

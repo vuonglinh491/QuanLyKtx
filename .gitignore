@@ -17,6 +17,9 @@ obj/
 *.local
 *.userprefs
 
+# Agent files
+.agent/
+
 # OS files
 Thumbs.db
 ehthumbs.db

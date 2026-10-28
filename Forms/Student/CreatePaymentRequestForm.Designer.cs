@@ -154,7 +154,7 @@ namespace QuanLyKtx.Forms.Student
             // ── Form ───────────────────────────────────────────────────
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            BackColor = System.Drawing.Color.White;
+            BackColor = System.Drawing.Color.FromArgb(248, 250, 252);
             ClientSize = new System.Drawing.Size(460, 415);
             FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             MaximizeBox = false;

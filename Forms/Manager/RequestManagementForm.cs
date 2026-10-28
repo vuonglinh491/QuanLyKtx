@@ -26,6 +26,7 @@ namespace QuanLyKtx.Forms.Manager
 
         private void RequestManagementForm_Load(object? sender, EventArgs e)
         {
+            ApplyUITheme();
             SetupDataGridViewStyle();
             LoadAvailableRoomsDropdown();
 
@@ -39,16 +40,19 @@ namespace QuanLyKtx.Forms.Manager
             LoadRequests();
         }
 
+        private void ApplyUITheme()
+        {
+            UITheme.ApplySuccessButton(btnApprove, "✅  Duyệt yêu cầu");
+            UITheme.ApplyDangerButton(btnReject, "🚫  Từ chối");
+            UITheme.ApplySecondaryButton(btnClear, "🧹  Bỏ chọn");
+            UITheme.ApplyPrimaryButton(btnSearch, "🔍  Tìm");
+            UITheme.ApplySecondaryButton(btnRefresh, "🔄  Làm mới");
+        }
+
         private void SetupDataGridViewStyle()
         {
             DataGridViewHelper.Configure(dgvRequests);
             ScrollableControlHelper.Configure(grpAction);
-            dgvRequests.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvRequests.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvRequests.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
-            dgvRequests.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-            dgvRequests.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
-            dgvRequests.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
         }
 
         private void LoadAvailableRoomsDropdown()

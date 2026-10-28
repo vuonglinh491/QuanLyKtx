@@ -24,6 +24,7 @@ namespace QuanLyKtx.Forms.Manager
 
         private void RoomAssignmentForm_Load(object? sender, EventArgs e)
         {
+            ApplyUITheme();
             SetupDataGridViewStyle();
             cboFilterStatus.SelectedIndex = 1; // Mặc định lọc "Đang lưu trú (Active)"
             dtpStartDate.Value = DateTime.Today;
@@ -32,16 +33,19 @@ namespace QuanLyKtx.Forms.Manager
             LoadAssignments();
         }
 
+        private void ApplyUITheme()
+        {
+            UITheme.ApplySuccessButton(btnAssign, "🛏️  Xác nhận xếp phòng");
+            UITheme.ApplyWarningButton(btnChangeRoom, "🔄  Xác nhận đổi phòng");
+            UITheme.ApplyDangerButton(btnCheckout, "🚪  Xác nhận trả phòng");
+            UITheme.ApplyPrimaryButton(btnSearch, "🔍  Tìm");
+            UITheme.ApplySecondaryButton(btnRefresh, "🔄  Làm mới");
+        }
+
         private void SetupDataGridViewStyle()
         {
             DataGridViewHelper.Configure(dgvAssignments);
             ScrollableControlHelper.Configure(pnlLeft);
-            dgvAssignments.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvAssignments.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvAssignments.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
-            dgvAssignments.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-            dgvAssignments.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
-            dgvAssignments.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
         }
 
         private void LoadDropdowns()

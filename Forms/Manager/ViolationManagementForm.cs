@@ -23,6 +23,7 @@ namespace QuanLyKtx.Forms.Manager
 
         private void ViolationManagementForm_Load(object? sender, EventArgs e)
         {
+            ApplyUITheme();
             SetupDataGridViewStyle();
             LoadStudentDropdown();
 
@@ -42,16 +43,20 @@ namespace QuanLyKtx.Forms.Manager
             UpdateButtonStates();
         }
 
+        private void ApplyUITheme()
+        {
+            UITheme.ApplySuccessButton(btnAdd, "➕  Lập biên bản");
+            UITheme.ApplyWarningButton(btnEdit, "✏️  Cập nhật");
+            UITheme.ApplyDangerButton(btnDelete, "🗑️  Xóa vi phạm");
+            UITheme.ApplySecondaryButton(btnClear, "🧹  Xóa trắng");
+            UITheme.ApplyPrimaryButton(btnSearch, "🔍  Tìm");
+            UITheme.ApplySecondaryButton(btnRefresh, "🔄  Làm mới");
+        }
+
         private void SetupDataGridViewStyle()
         {
             DataGridViewHelper.Configure(dgvViolations);
             ScrollableControlHelper.Configure(grpInfo);
-            dgvViolations.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvViolations.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvViolations.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
-            dgvViolations.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-            dgvViolations.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
-            dgvViolations.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
         }
 
         private void LoadStudentDropdown()

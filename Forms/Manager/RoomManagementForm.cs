@@ -22,6 +22,7 @@ namespace QuanLyKtx.Forms.Manager
 
         private void RoomManagementForm_Load(object? sender, EventArgs e)
         {
+            ApplyUITheme();
             SetupDataGridViewStyle();
             LoadBuildingCombos();
             cboRoomType.SelectedIndex = 0;
@@ -30,16 +31,20 @@ namespace QuanLyKtx.Forms.Manager
             LoadRooms();
         }
 
+        private void ApplyUITheme()
+        {
+            UITheme.ApplySuccessButton(btnAdd, "➕  Thêm mới");
+            UITheme.ApplyWarningButton(btnEdit, "✏️  Cập nhật");
+            UITheme.ApplyDangerButton(btnDelete, "🗑️  Xóa phòng");
+            UITheme.ApplySecondaryButton(btnClear, "🧹  Xóa trắng");
+            UITheme.ApplyPrimaryButton(btnSearch, "🔍  Tìm");
+            UITheme.ApplySecondaryButton(btnRefresh, "🔄  Làm mới");
+        }
+
         private void SetupDataGridViewStyle()
         {
             DataGridViewHelper.Configure(dgvRooms);
             ScrollableControlHelper.Configure(grpInfo);
-            dgvRooms.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvRooms.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvRooms.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
-            dgvRooms.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-            dgvRooms.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
-            dgvRooms.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
         }
 
         private void LoadBuildingCombos()
@@ -193,10 +198,11 @@ namespace QuanLyKtx.Forms.Manager
             }
 
             var confirm = MessageBox.Show(
-                $"Bạn có chắc chắn muốn xóa phòng [{txtRoomNumber.Text}] không?",
+                $"Bạn có chắc chắn muốn xóa phòng [{txtRoomNumber.Text}] không?\n(Lưu ý: Không thể xóa nếu phòng đang có sinh viên lưu trú)",
                 "Xác nhận xóa phòng",
                 MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button2);
 
             if (confirm == DialogResult.Yes)
             {

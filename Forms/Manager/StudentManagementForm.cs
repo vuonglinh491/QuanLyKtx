@@ -23,20 +23,25 @@ namespace QuanLyKtx.Forms.Manager
         {
             cboGender.SelectedIndex = 0; // Mặc định là "Nam"
             dtpDateOfBirth.Value = new DateTime(2004, 1, 1);
+            ApplyUITheme();
             SetupDataGridViewStyle();
             LoadStudents();
+        }
+
+        private void ApplyUITheme()
+        {
+            UITheme.ApplySuccessButton(btnAdd, "➕  Thêm mới");
+            UITheme.ApplyWarningButton(btnEdit, "✏️  Cập nhật");
+            UITheme.ApplyDangerButton(btnDelete, "🗑️  Xóa SV");
+            UITheme.ApplySecondaryButton(btnClear, "🧹  Xóa trắng");
+            UITheme.ApplyPrimaryButton(btnSearch, "🔍  Tìm kiếm");
+            UITheme.ApplySecondaryButton(btnRefresh, "🔄  Làm mới");
         }
 
         private void SetupDataGridViewStyle()
         {
             DataGridViewHelper.Configure(dgvStudents);
             ScrollableControlHelper.Configure(grpInfo);
-            dgvStudents.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            dgvStudents.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(240, 243, 246);
-            dgvStudents.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(30, 41, 59);
-            dgvStudents.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F, FontStyle.Regular);
-            dgvStudents.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
-            dgvStudents.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
         }
 
         private void LoadStudents()
@@ -197,10 +202,11 @@ namespace QuanLyKtx.Forms.Manager
             }
 
             var confirm = MessageBox.Show(
-                $"Bạn có chắc chắn muốn xóa sinh viên [{txtStudentCode.Text} - {txtFullName.Text}] không?\n(Thao tác này sẽ xóa cả tài khoản và dữ liệu liên quan)",
-                "Xác nhận xóa",
+                $"Bạn có chắc chắn muốn xóa sinh viên [{txtStudentCode.Text} - {txtFullName.Text}] không?\n(Lưu ý: Thao tác này sẽ xóa vĩnh viễn tài khoản và các dữ liệu liên quan)",
+                "Xác nhận xóa sinh viên",
                 MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button2);
 
             if (confirm == DialogResult.Yes)
             {

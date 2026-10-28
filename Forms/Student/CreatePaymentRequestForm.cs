@@ -18,6 +18,9 @@ namespace QuanLyKtx.Forms.Student
 
         private void CreatePaymentRequestForm_Load(object? sender, EventArgs e)
         {
+            UITheme.ApplyPrimaryButton(btnSubmit, "💾  Tạo khoản nộp");
+            UITheme.ApplySecondaryButton(btnCancel, "Hủy bỏ");
+
             if (cboPaymentType.Items.Count > 0)
                 cboPaymentType.SelectedIndex = 0;
         }
