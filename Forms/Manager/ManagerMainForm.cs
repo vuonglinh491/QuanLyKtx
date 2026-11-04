@@ -67,29 +67,39 @@ namespace QuanLyKtx.Forms.Manager
             }
 
             pnlContent.Controls.Clear();
+            pnlContent.Padding = new Padding(24, 20, 24, 20);
 
-            // Tiêu đề Dashboard
+            // 1. Panel tiêu đề trên cùng (Trực quan, tự động co giãn)
+            var pnlTop = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 44,
+                BackColor = Color.Transparent
+            };
+
             var lblTitle = new Label
             {
                 Text = "BẢNG ĐIỀU KHIỂN QUẢN TRỊ KÝ TÚC XÁ",
                 Font = new Font("Segoe UI", 15F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(15, 23, 42),
-                Location = new Point(25, 20),
-                AutoSize = true
+                Dock = DockStyle.Left,
+                AutoSize = true,
+                TextAlign = ContentAlignment.MiddleLeft
             };
-            pnlContent.Controls.Add(lblTitle);
 
             var btnRefresh = new Button
             {
-                Size = new Size(150, 34),
-                Location = new Point(810, 18),
+                Size = new Size(165, 36),
+                Dock = DockStyle.Right,
                 Cursor = Cursors.Hand
             };
             UITheme.ApplySecondaryButton(btnRefresh, "🔄  Làm mới dữ liệu");
             btnRefresh.Click += (s, ev) => ShowDashboardView();
-            pnlContent.Controls.Add(btnRefresh);
 
-            // Lấy dữ liệu thống kê từ SQLite
+            pnlTop.Controls.Add(lblTitle);
+            pnlTop.Controls.Add(btnRefresh);
+
+            // 2. Lấy dữ liệu thống kê từ SQLite
             int totalStudents = 0;
             int stayingStudents = 0;
             int totalRooms = 0;
@@ -122,66 +132,128 @@ namespace QuanLyKtx.Forms.Manager
                 MessageBox.Show("Lỗi tải dữ liệu bảng điều khiển: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
-            // Hiển thị các Card thống kê nhanh
-            CreateStatCard("Tổng sinh viên", $"{totalStudents} SV", $"{stayingStudents} đang ở KTX", Color.FromArgb(37, 99, 235), "👥", 25, 65);
-            CreateStatCard("Tổng số phòng", $"{totalRooms} phòng", $"{availableRooms} phòng còn trống", Color.FromArgb(16, 185, 129), "🏢", 270, 65);
-            CreateStatCard("Yêu cầu chờ duyệt", $"{pendingRequests} đơn", "Cần quản lý xử lý", Color.FromArgb(239, 68, 68), "📩", 515, 65);
-            CreateStatCard("Vi phạm chưa nộp", $"{unpaidViolations} vụ", "Chờ xử lý kỷ luật", Color.FromArgb(245, 158, 11), "⚠️", 760, 65);
+            // 3. TableLayoutPanel 4 Cards thống kê (Tự động kéo giãn 4 cột 25% đều nhau theo chiều rộng full màn hình)
+            var tblCards = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                Height = 125,
+                ColumnCount = 4,
+                RowCount = 1,
+                BackColor = Color.Transparent,
+                Margin = new Padding(0),
+                Padding = new Padding(0, 10, 0, 10)
+            };
+            tblCards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
+            tblCards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
+            tblCards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
+            tblCards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));
+            tblCards.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
-            // Bảng 1: Sinh viên đang lưu trú gần đây
+            var card1 = CreateStatCard("Tổng sinh viên", $"{totalStudents} SV", $"{stayingStudents} đang ở KTX", Color.FromArgb(37, 99, 235), "👥");
+            var card2 = CreateStatCard("Tổng số phòng", $"{totalRooms} phòng", $"{availableRooms} phòng còn trống", Color.FromArgb(16, 185, 129), "🏢");
+            var card3 = CreateStatCard("Yêu cầu chờ duyệt", $"{pendingRequests} đơn", "Cần quản lý xử lý", Color.FromArgb(239, 68, 68), "📩");
+            var card4 = CreateStatCard("Vi phạm chưa nộp", $"{unpaidViolations} vụ", "Chờ xử lý kỷ luật", Color.FromArgb(245, 158, 11), "⚠️");
+
+            card1.Margin = new Padding(0, 0, 8, 0);
+            card2.Margin = new Padding(8, 0, 8, 0);
+            card3.Margin = new Padding(8, 0, 8, 0);
+            card4.Margin = new Padding(8, 0, 0, 0);
+
+            tblCards.Controls.Add(card1, 0, 0);
+            tblCards.Controls.Add(card2, 1, 0);
+            tblCards.Controls.Add(card3, 2, 0);
+            tblCards.Controls.Add(card4, 3, 0);
+
+            // 4. TableLayoutPanel 2 Bảng dữ liệu (Tự động kéo giãn 50% mỗi cột và Fill toàn bộ chiều cao còn lại)
+            var tblGrids = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = Color.Transparent,
+                Margin = new Padding(0),
+                Padding = new Padding(0, 8, 0, 0)
+            };
+            tblGrids.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50f));
+            tblGrids.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50f));
+            tblGrids.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+
+            // Bảng 1 Container
+            var pnlLeftGrid = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 0, 8, 0),
+                BackColor = Color.Transparent
+            };
             var lblStayingTitle = new Label
             {
                 Text = "Danh sách sinh viên đang lưu trú:",
                 Font = new Font("Segoe UI", 11.5F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(30, 41, 59),
-                Location = new Point(25, 195),
-                AutoSize = true
+                Dock = DockStyle.Top,
+                Height = 32,
+                TextAlign = ContentAlignment.MiddleLeft
             };
-            pnlContent.Controls.Add(lblStayingTitle);
-
             var dgvStaying = new DataGridView
             {
-                Location = new Point(25, 230),
-                Size = new Size(465, 420),
+                Dock = DockStyle.Fill,
                 BackgroundColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle,
                 ReadOnly = true,
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                MultiSelect = false
+                MultiSelect = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
             };
             DataGridViewHelper.Configure(dgvStaying);
-            ConfigureDashboardGrid(dgvStaying, new[] { 75, 145, 75, 115, 100 });
+            pnlLeftGrid.Controls.Add(dgvStaying);
+            pnlLeftGrid.Controls.Add(lblStayingTitle);
 
-            // Bảng 2: Yêu cầu của sinh viên cần duyệt
+            // Bảng 2 Container
+            var pnlRightGrid = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Margin = new Padding(8, 0, 0, 0),
+                BackColor = Color.Transparent
+            };
             var lblRequestsTitle = new Label
             {
                 Text = "Yêu cầu của sinh viên gần nhất:",
                 Font = new Font("Segoe UI", 11.5F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(30, 41, 59),
-                Location = new Point(515, 195),
-                AutoSize = true
+                Dock = DockStyle.Top,
+                Height = 32,
+                TextAlign = ContentAlignment.MiddleLeft
             };
-            pnlContent.Controls.Add(lblRequestsTitle);
-
             var dgvRequests = new DataGridView
             {
-                Location = new Point(515, 230),
-                Size = new Size(465, 420),
+                Dock = DockStyle.Fill,
                 BackgroundColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle,
                 ReadOnly = true,
                 AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                MultiSelect = false
+                MultiSelect = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
             };
             DataGridViewHelper.Configure(dgvRequests);
-            ConfigureDashboardGrid(dgvRequests, new[] { 75, 135, 115, 85, 100 });
+            pnlRightGrid.Controls.Add(dgvRequests);
+            pnlRightGrid.Controls.Add(lblRequestsTitle);
 
-            pnlContent.Controls.Add(dgvStaying);
-            pnlContent.Controls.Add(dgvRequests);
+            tblGrids.Controls.Add(pnlLeftGrid, 0, 0);
+            tblGrids.Controls.Add(pnlRightGrid, 1, 0);
+
+            // Thêm các thành phần vào pnlContent theo đúng thứ tự Dock
+            pnlContent.Controls.Add(tblGrids);
+            pnlContent.Controls.Add(tblCards);
+            pnlContent.Controls.Add(pnlTop);
+
+            // Đảm bảo z-order để Dock hoạt động chính xác
+            pnlTop.SendToBack();
+            tblCards.SendToBack();
+            tblGrids.BringToFront();
 
             // Nạp dữ liệu vào 2 bảng
             try
@@ -229,59 +301,55 @@ namespace QuanLyKtx.Forms.Manager
             {
                 MessageBox.Show("Lỗi hiển thị danh sách: " + ex.Message);
             }
-        }
 
-        private static void ConfigureDashboardGrid(DataGridView grid, int[] columnWidths)
-        {
-            grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
-            grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(224, 238, 255);
-            grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
-            grid.AllowUserToResizeRows = false;
-
-            grid.DataBindingComplete += (sender, _) =>
+            // Tự động phân chia tỷ lệ cột khi DataBinding hoàn tất
+            dgvStaying.DataBindingComplete += (sender, _) =>
             {
-                if (sender is not DataGridView boundGrid) return;
-
-                for (int index = 0; index < boundGrid.Columns.Count && index < columnWidths.Length; index++)
+                if (dgvStaying.Columns.Count >= 5)
                 {
-                    boundGrid.Columns[index].Width = columnWidths[index];
+                    dgvStaying.Columns[0].FillWeight = 80;   // Mã SV
+                    dgvStaying.Columns[1].FillWeight = 160;  // Họ và tên
+                    dgvStaying.Columns[2].FillWeight = 70;   // Phòng
+                    dgvStaying.Columns[3].FillWeight = 90;   // Khu nhà
+                    dgvStaying.Columns[4].FillWeight = 100;  // Ngày vào ở
                 }
-
-                boundGrid.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCells);
             };
 
-            grid.CellToolTipTextNeeded += (sender, eventArgs) =>
+            dgvRequests.DataBindingComplete += (sender, _) =>
             {
-                if (sender is DataGridView boundGrid && eventArgs.RowIndex >= 0 && eventArgs.ColumnIndex >= 0)
+                if (dgvRequests.Columns.Count >= 5)
                 {
-                    eventArgs.ToolTipText = boundGrid.Rows[eventArgs.RowIndex].Cells[eventArgs.ColumnIndex].Value?.ToString();
+                    dgvRequests.Columns[0].FillWeight = 80;   // Mã SV
+                    dgvRequests.Columns[1].FillWeight = 140;  // Họ tên
+                    dgvRequests.Columns[2].FillWeight = 130;  // Loại yêu cầu
+                    dgvRequests.Columns[3].FillWeight = 90;   // Ngày gửi
+                    dgvRequests.Columns[4].FillWeight = 100;  // Trạng thái
                 }
             };
         }
 
-        private void CreateStatCard(string title, string mainVal, string subVal, Color accentColor, string icon, int x, int y)
+        private static Panel CreateStatCard(string title, string mainVal, string subVal, Color accentColor, string icon)
         {
             var pnl = new Panel
             {
-                Size = new Size(230, 115),
-                Location = new Point(x, y),
+                Dock = DockStyle.Fill,
                 BackColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle
             };
 
             var bar = new Panel
             {
-                Size = new Size(230, 4),
                 Dock = DockStyle.Top,
+                Height = 4,
                 BackColor = accentColor
             };
 
             var lblIcon = new Label
             {
                 Text = icon,
-                Font = new Font("Segoe UI Emoji", 18F),
-                Location = new Point(175, 14),
-                Size = new Size(45, 45),
+                Font = new Font("Segoe UI Emoji", 20F),
+                Size = new Size(50, 50),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
                 TextAlign = ContentAlignment.MiddleCenter
             };
 
@@ -308,7 +376,7 @@ namespace QuanLyKtx.Forms.Manager
                 Text = "• " + subVal,
                 Font = new Font("Segoe UI", 8.5F, FontStyle.Regular),
                 ForeColor = accentColor,
-                Location = new Point(14, 82),
+                Location = new Point(14, 76),
                 AutoSize = true
             };
 
@@ -317,7 +385,14 @@ namespace QuanLyKtx.Forms.Manager
             pnl.Controls.Add(lblT);
             pnl.Controls.Add(lblV);
             pnl.Controls.Add(lblSub);
-            pnlContent.Controls.Add(pnl);
+
+            // Căn icon góc phải trên khi kích thước card thay đổi
+            pnl.Resize += (s, e) =>
+            {
+                lblIcon.Location = new Point(pnl.Width - 58, 14);
+            };
+
+            return pnl;
         }
 
         private void btnDashboard_Click(object? sender, EventArgs e)

@@ -31,6 +31,18 @@ namespace QuanLyKtx.Forms.Manager
         {
             UITheme.ApplySuccessButton(btnExportCsv, "📄  Xuất file PDF");
             UITheme.ApplyPrimaryButton(btnRefresh, "📊  Xem báo cáo");
+
+            // Tự động kéo giãn 4 thẻ KPI trải đều theo độ rộng màn hình khi phóng to
+            pnlCards.Resize += (s, e) =>
+            {
+                int pad = 12;
+                int totalWidth = pnlCards.ClientSize.Width - pad * 5;
+                int cardWidth = Math.Max(180, totalWidth / 4);
+                pnlCardTotalRevenue.SetBounds(pad, 12, cardWidth, 76);
+                pnlCardRoomRevenue.SetBounds(pad + (cardWidth + pad), 12, cardWidth, 76);
+                pnlCardUtilityRevenue.SetBounds(pad + (cardWidth + pad) * 2, 12, cardWidth, 76);
+                pnlCardOccupancy.SetBounds(pad + (cardWidth + pad) * 3, 12, cardWidth, 76);
+            };
         }
 
         private void SetupDataGridViewStyles()

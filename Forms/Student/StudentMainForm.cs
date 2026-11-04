@@ -58,18 +58,21 @@ namespace QuanLyKtx.Forms.Student
         private void ShowHomeView()
         {
             pnlContent.Controls.Clear();
+            pnlContent.Padding = new Padding(24, 20, 24, 20);
 
+            // Container Panel cuộn hoặc kéo giãn
             var pnlHero = new Panel
             {
-                Location = new Point(30, 20),
-                Size = new Size(740, 95),
+                Dock = DockStyle.Top,
+                Height = 100,
                 BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.FixedSingle,
+                Margin = new Padding(0, 0, 0, 15)
             };
 
             var heroBar = new Panel
             {
-                Size = new Size(740, 4),
+                Height = 4,
                 Dock = DockStyle.Top,
                 BackColor = Color.FromArgb(15, 76, 129)
             };
@@ -91,27 +94,60 @@ namespace QuanLyKtx.Forms.Student
                 Font = new Font("Segoe UI", 9.5F),
                 ForeColor = Color.FromArgb(71, 85, 105),
                 Location = new Point(20, 48),
-                Size = new Size(700, 36)
+                AutoSize = true
             };
             pnlHero.Controls.Add(lblDesc);
 
+            // TableLayoutPanel cho 6 Shortcut Cards (2 dòng x 3 cột, tự động co giãn full màn hình)
+            var tblShortcuts = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                Height = 270,
+                ColumnCount = 3,
+                RowCount = 2,
+                BackColor = Color.Transparent,
+                Margin = new Padding(0),
+                Padding = new Padding(0, 15, 0, 0)
+            };
+            tblShortcuts.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
+            tblShortcuts.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
+            tblShortcuts.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
+            tblShortcuts.RowStyles.Add(new RowStyle(SizeType.Percent, 50f));
+            tblShortcuts.RowStyles.Add(new RowStyle(SizeType.Percent, 50f));
+
+            var c1 = CreateShortcutCard("🏠  Phòng của tôi", "Tra cứu phòng đang ở & bạn cùng phòng", btnMyRoom_Click);
+            var c2 = CreateShortcutCard("📄  Hợp đồng KTX", "Xem thời hạn hợp đồng và tiền phòng", btnMyContract_Click);
+            var c3 = CreateShortcutCard("⚡  Điện nước phòng", "Xem chỉ số và tiền điện nước tháng này", btnMyElecWater_Click);
+            var c4 = CreateShortcutCard("💳  Hóa đơn & Nộp phí", "Xem các khoản phí cần đóng và thanh toán QR", btnMyPayments_Click);
+            var c5 = CreateShortcutCard("📩  Gửi yêu cầu KTX", "Đăng ký, chuyển phòng hoặc báo trả phòng", btnMyRequests_Click);
+            var c6 = CreateShortcutCard("👤  Hồ sơ cá nhân", "Cập nhật số điện thoại, email, địa chỉ liên hệ", btnProfile_Click);
+
+            c1.Margin = new Padding(0, 0, 8, 8);
+            c2.Margin = new Padding(8, 0, 8, 8);
+            c3.Margin = new Padding(8, 0, 0, 8);
+            c4.Margin = new Padding(0, 8, 8, 0);
+            c5.Margin = new Padding(8, 8, 8, 0);
+            c6.Margin = new Padding(8, 8, 0, 0);
+
+            tblShortcuts.Controls.Add(c1, 0, 0);
+            tblShortcuts.Controls.Add(c2, 1, 0);
+            tblShortcuts.Controls.Add(c3, 2, 0);
+            tblShortcuts.Controls.Add(c4, 0, 1);
+            tblShortcuts.Controls.Add(c5, 1, 1);
+            tblShortcuts.Controls.Add(c6, 2, 1);
+
+            pnlContent.Controls.Add(tblShortcuts);
             pnlContent.Controls.Add(pnlHero);
 
-            // Các nút truy cập nhanh
-            CreateShortcutCard("🏠  Phòng của tôi", "Tra cứu phòng đang ở & bạn cùng phòng", 30, 135, btnMyRoom_Click);
-            CreateShortcutCard("📄  Hợp đồng KTX", "Xem thời hạn hợp đồng và tiền phòng", 280, 135, btnMyContract_Click);
-            CreateShortcutCard("⚡  Điện nước phòng", "Xem chỉ số và tiền điện nước tháng này", 530, 135, btnMyElecWater_Click);
-            CreateShortcutCard("💳  Hóa đơn & Nộp phí", "Xem các khoản phí cần đóng và thanh toán QR", 30, 270, btnMyPayments_Click);
-            CreateShortcutCard("📩  Gửi yêu cầu KTX", "Đăng ký, chuyển phòng hoặc báo trả phòng", 280, 270, btnMyRequests_Click);
-            CreateShortcutCard("👤  Hồ sơ cá nhân", "Cập nhật số điện thoại, email, địa chỉ liên hệ", 530, 270, btnProfile_Click);
+            pnlHero.SendToBack();
+            tblShortcuts.BringToFront();
         }
 
-        private void CreateShortcutCard(string title, string desc, int x, int y, EventHandler onClick)
+        private Panel CreateShortcutCard(string title, string desc, EventHandler onClick)
         {
             var pnl = new Panel
             {
-                Size = new Size(230, 118),
-                Location = new Point(x, y),
+                Dock = DockStyle.Fill,
                 BackColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle,
                 Cursor = Cursors.Hand
@@ -119,7 +155,7 @@ namespace QuanLyKtx.Forms.Student
 
             var topStripe = new Panel
             {
-                Size = new Size(230, 3),
+                Height = 3,
                 Dock = DockStyle.Top,
                 BackColor = Color.FromArgb(37, 99, 235)
             };
@@ -141,7 +177,8 @@ namespace QuanLyKtx.Forms.Student
                 Font = new Font("Segoe UI", 8.75F),
                 ForeColor = Color.FromArgb(100, 116, 139),
                 Location = new Point(14, 42),
-                Size = new Size(202, 42),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Size = new Size(pnl.Width - 28, 42),
                 Cursor = Cursors.Hand
             };
 
@@ -150,6 +187,7 @@ namespace QuanLyKtx.Forms.Student
                 Text = "Khám phá →",
                 Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(37, 99, 235),
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
                 Location = new Point(14, 88),
                 AutoSize = true,
                 Cursor = Cursors.Hand
@@ -158,6 +196,13 @@ namespace QuanLyKtx.Forms.Student
             pnl.Controls.Add(lblT);
             pnl.Controls.Add(lblD);
             pnl.Controls.Add(lblAction);
+
+            // Tự cập nhật chiều rộng nhãn mô tả khi card co giãn
+            pnl.Resize += (s, e) =>
+            {
+                lblD.Width = Math.Max(50, pnl.Width - 28);
+                lblAction.Location = new Point(14, pnl.Height - 26);
+            };
 
             // Hiệu ứng hover tương tác
             void OnEnter(object? s, EventArgs e)
@@ -184,7 +229,7 @@ namespace QuanLyKtx.Forms.Student
             lblD.Click += onClick;
             lblAction.Click += onClick;
 
-            pnlContent.Controls.Add(pnl);
+            return pnl;
         }
 
         private void btnHome_Click(object? sender, EventArgs e)
