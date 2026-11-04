@@ -45,6 +45,8 @@ namespace QuanLyKtx.Forms.Student
         {
             ApplyUITheme();
             PopulateInfo();
+            // Tự động tạo mã QR VietQR ngay khi mở giao diện
+            btnGenerateQR_Click(btnGenerateQR, EventArgs.Empty);
         }
 
         private void ApplyUITheme()

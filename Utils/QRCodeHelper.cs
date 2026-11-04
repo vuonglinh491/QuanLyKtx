@@ -1,8 +1,9 @@
 using System;
 using System.Drawing;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Web;
+using QRCoder;
 
 namespace QuanLyKtx.Utils
 {
@@ -24,18 +25,28 @@ namespace QuanLyKtx.Utils
             Timeout = TimeSpan.FromSeconds(15)
         };
 
+        static QRCodeHelper()
+        {
+            if (!_httpClient.DefaultRequestHeaders.Contains("User-Agent"))
+            {
+                _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) QuanLyKtx/1.0");
+            }
+        }
+
         /// <summary>
-        /// Tạo ảnh QR VietQR từ API img.vietqr.io
+        /// Tạo ảnh QR VietQR từ API img.vietqr.io hoặc tự sinh mã ngoại tuyến qua QRCoder
         /// </summary>
         /// <param name="amount">Số tiền cần chuyển (VNĐ)</param>
-        /// <param name="description">Nội dung chuyển khoản (noti)</param>
+        /// <param name="description">Nội dung chuyển khoản</param>
         /// <returns>Ảnh QR dạng Bitmap, hoặc null nếu lỗi</returns>
         public static async Task<Bitmap?> GenerateVietQRAsync(decimal amount, string description)
         {
+            string safeDesc = RemoveDiacritics(description);
+
             try
             {
-                // Encode nội dung chuyển khoản (loại bỏ dấu tiếng Việt để tránh lỗi API)
-                string encodedDesc = Uri.EscapeDataString(RemoveDiacritics(description));
+                // 1. Gọi API VietQR online
+                string encodedDesc = Uri.EscapeDataString(safeDesc);
                 string encodedName = Uri.EscapeDataString(ACCOUNT_NAME);
 
                 string url = $"https://img.vietqr.io/image/{BANK_ID}-{ACCOUNT_NO}-{TEMPLATE}.png" +
@@ -43,15 +54,54 @@ namespace QuanLyKtx.Utils
                              $"&addInfo={encodedDesc}" +
                              $"&accountName={encodedName}";
 
-                byte[] imageBytes = await _httpClient.GetByteArrayAsync(url);
+                byte[] responseBytes = await _httpClient.GetByteArrayAsync(url);
 
-                using var ms = new System.IO.MemoryStream(imageBytes);
-                return new Bitmap(ms);
+                // Trường hợp A: Phản hồi là ảnh nhị phân thuần PNG hoặc JPEG
+                if (responseBytes.Length > 8 &&
+                    ((responseBytes[0] == 0x89 && responseBytes[1] == 0x50 && responseBytes[2] == 0x4E && responseBytes[3] == 0x47) ||
+                     (responseBytes[0] == 0xFF && responseBytes[1] == 0xD8)))
+                {
+                    using var ms = new System.IO.MemoryStream(responseBytes);
+                    return new Bitmap(ms);
+                }
+
+                // Trường hợp B: API trả về SVG wrapper chứa base64 PNG bên trong
+                string responseText = System.Text.Encoding.UTF8.GetString(responseBytes);
+                var match = Regex.Match(responseText, @"data:image/png;base64,([A-Za-z0-9+/=]+)");
+                if (match.Success)
+                {
+                    byte[] pngBytes = Convert.FromBase64String(match.Groups[1].Value);
+                    using var ms = new System.IO.MemoryStream(pngBytes);
+                    return new Bitmap(ms);
+                }
+
+                // Nếu không parse được từ API, fallback sang QRCoder
+                return GenerateOfflineQRCode(amount, safeDesc);
             }
             catch
             {
-                return null;
+                // 2. Fallback ngoại tuyến: Tự sinh mã QR chuẩn bằng thư viện QRCoder
+                try
+                {
+                    return GenerateOfflineQRCode(amount, safeDesc);
+                }
+                catch
+                {
+                    return null;
+                }
             }
+        }
+
+        /// <summary>
+        /// Tạo mã QR ngoại tuyến tiêu chuẩn sử dụng thư viện QRCoder (không cần kết nối internet)
+        /// </summary>
+        public static Bitmap GenerateOfflineQRCode(decimal amount, string description)
+        {
+            string payload = $"https://img.vietqr.io/image/{BANK_ID}-{ACCOUNT_NO}-{TEMPLATE}.png?amount={(long)amount}&addInfo={Uri.EscapeDataString(description)}&accountName={Uri.EscapeDataString(ACCOUNT_NAME)}";
+            using var qrGenerator = new QRCodeGenerator();
+            using var qrCodeData = qrGenerator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.Q);
+            using var qrCode = new QRCode(qrCodeData);
+            return qrCode.GetGraphic(12);
         }
 
         /// <summary>
@@ -66,7 +116,7 @@ namespace QuanLyKtx.Utils
         /// <summary>
         /// Loại bỏ dấu tiếng Việt để dùng trong nội dung QR
         /// </summary>
-        private static string RemoveDiacritics(string text)
+        public static string RemoveDiacritics(string text)
         {
             if (string.IsNullOrEmpty(text)) return text;
 

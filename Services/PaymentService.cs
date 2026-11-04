@@ -466,6 +466,19 @@ namespace QuanLyKtx.Services
             errorMessage = string.Empty;
             try
             {
+                // Lấy thông tin khoản thanh toán trước khi cập nhật
+                string sqlGet = "SELECT StudentID, Amount, PaymentType FROM Payments WHERE PaymentID = @PaymentID";
+                var dt = DatabaseHelper.ExecuteQuery(sqlGet, new[] { new SQLiteParameter("@PaymentID", paymentId) });
+                if (dt.Rows.Count == 0)
+                {
+                    errorMessage = "Không tìm thấy khoản thanh toán hoặc khoản này đã được xử lý.";
+                    return false;
+                }
+
+                int studentId = Convert.ToInt32(dt.Rows[0]["StudentID"]);
+                decimal amount = Convert.ToDecimal(dt.Rows[0]["Amount"]);
+                string paymentType = dt.Rows[0]["PaymentType"].ToString() ?? "";
+
                 string sql = @"
                     UPDATE Payments 
                     SET Status = 'Paid', PaymentDate = @PaymentDate
@@ -477,12 +490,26 @@ namespace QuanLyKtx.Services
                     new SQLiteParameter("@PaymentDate", DateTime.Today)
                 });
 
-                if (rows == 0)
+                if (rows > 0)
                 {
-                    errorMessage = "Không tìm thấy khoản thanh toán hoặc khoản này đã được xử lý.";
-                    return false;
+                    // Nếu là nộp tiền phạt vi phạm, tự động gạch nợ trong bảng Violations
+                    if (paymentType.Contains("phạt", StringComparison.OrdinalIgnoreCase) || paymentType.Contains("vi phạm", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string sqlUpdateViolation = @"
+                            UPDATE Violations
+                            SET Status = 'Paid'
+                            WHERE StudentID = @StudentID AND Status = 'Unpaid' AND FineAmount = @Amount";
+                        DatabaseHelper.ExecuteNonQuery(sqlUpdateViolation, new[]
+                        {
+                            new SQLiteParameter("@StudentID", studentId),
+                            new SQLiteParameter("@Amount", amount)
+                        });
+                    }
+                    return true;
                 }
-                return true;
+
+                errorMessage = "Không tìm thấy khoản thanh toán hoặc khoản này đã được xử lý.";
+                return false;
             }
             catch (Exception ex)
             {

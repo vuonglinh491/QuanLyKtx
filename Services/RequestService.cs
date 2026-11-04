@@ -111,7 +111,32 @@ namespace QuanLyKtx.Services
                     new SQLiteParameter("@Status", string.IsNullOrWhiteSpace(violation.Status) ? "Unpaid" : violation.Status)
                 };
 
-                return DatabaseHelper.ExecuteNonQuery(sql, parameters) > 0;
+                int rows = DatabaseHelper.ExecuteNonQuery(sql, parameters);
+                if (rows > 0)
+                {
+                    // Tự động sinh hóa đơn/khoản thu trong bảng Payments khi có tiền phạt > 0
+                    if (violation.FineAmount > 0)
+                    {
+                        string paymentStatus = (violation.Status == "Paid") ? "Paid" : "Pending";
+                        string pDesc = $"Phạt vi phạm: {violation.ViolationType.Trim()}" +
+                            (string.IsNullOrWhiteSpace(violation.Description) ? "" : $" - {violation.Description.Trim()}");
+
+                        string sqlPayment = @"
+                            INSERT INTO Payments (StudentID, ContractID, PaymentDate, Amount, PaymentType, Description, Status)
+                            VALUES (@StudentID, NULL, @PaymentDate, @Amount, 'Tiền phạt vi phạm', @Description, @Status)";
+
+                        DatabaseHelper.ExecuteNonQuery(sqlPayment, new[]
+                        {
+                            new SQLiteParameter("@StudentID", violation.StudentID),
+                            new SQLiteParameter("@PaymentDate", violation.ViolationDate.Date),
+                            new SQLiteParameter("@Amount", violation.FineAmount),
+                            new SQLiteParameter("@Description", pDesc),
+                            new SQLiteParameter("@Status", paymentStatus)
+                        });
+                    }
+                    return true;
+                }
+                return false;
             }
             catch (Exception ex)
             {
@@ -156,7 +181,28 @@ namespace QuanLyKtx.Services
                     new SQLiteParameter("@Status", violation.Status)
                 };
 
-                return DatabaseHelper.ExecuteNonQuery(sql, parameters) > 0;
+                int rows = DatabaseHelper.ExecuteNonQuery(sql, parameters);
+                if (rows > 0)
+                {
+                    // Nếu cập nhật trạng thái vi phạm sang Paid, tự động gạch nợ bản ghi Pending tương ứng trong Payments
+                    if (violation.Status == "Paid")
+                    {
+                        string sqlSync = @"
+                            UPDATE Payments
+                            SET Status = 'Paid'
+                            WHERE StudentID = @StudentID 
+                              AND PaymentType = 'Tiền phạt vi phạm' 
+                              AND Status = 'Pending' 
+                              AND Amount = @Amount";
+                        DatabaseHelper.ExecuteNonQuery(sqlSync, new[]
+                        {
+                            new SQLiteParameter("@StudentID", violation.StudentID),
+                            new SQLiteParameter("@Amount", violation.FineAmount)
+                        });
+                    }
+                    return true;
+                }
+                return false;
             }
             catch (Exception ex)
             {
@@ -174,8 +220,31 @@ namespace QuanLyKtx.Services
 
             try
             {
+                var dt = DatabaseHelper.ExecuteQuery(
+                    "SELECT StudentID, FineAmount FROM Violations WHERE ViolationID = @ViolationID",
+                    new[] { new SQLiteParameter("@ViolationID", violationId) });
+
                 string sql = "DELETE FROM Violations WHERE ViolationID = @ViolationID";
-                return DatabaseHelper.ExecuteNonQuery(sql, new[] { new SQLiteParameter("@ViolationID", violationId) }) > 0;
+                int rows = DatabaseHelper.ExecuteNonQuery(sql, new[] { new SQLiteParameter("@ViolationID", violationId) });
+
+                if (rows > 0 && dt.Rows.Count > 0)
+                {
+                    int sId = Convert.ToInt32(dt.Rows[0]["StudentID"]);
+                    decimal amount = Convert.ToDecimal(dt.Rows[0]["FineAmount"]);
+
+                    string sqlDelPayment = @"
+                        DELETE FROM Payments 
+                        WHERE StudentID = @StudentID 
+                          AND PaymentType = 'Tiền phạt vi phạm' 
+                          AND Amount = @Amount 
+                          AND Status = 'Pending'";
+                    DatabaseHelper.ExecuteNonQuery(sqlDelPayment, new[]
+                    {
+                        new SQLiteParameter("@StudentID", sId),
+                        new SQLiteParameter("@Amount", amount)
+                    });
+                }
+                return rows > 0;
             }
             catch (Exception ex)
             {

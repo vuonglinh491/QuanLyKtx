@@ -182,7 +182,12 @@ namespace QuanLyKtx.Forms.Manager
 
             if (_requestService.AddViolation(violation, out string errMsg))
             {
-                MessageBox.Show("Thêm biên bản vi phạm thành công!", "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                string msg = "Thêm biên bản vi phạm thành công!";
+                if (fineAmount > 0)
+                {
+                    msg += $"\n\nĐã tự động tạo hóa đơn tiền phạt {fineAmount:N0} VNĐ trong mục Quản lý Hóa đơn & Thu phí cho sinh viên.";
+                }
+                MessageBox.Show(msg, "Thành công", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 ClearForm();
                 LoadViolations();
             }
