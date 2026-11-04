@@ -20,6 +20,7 @@ namespace QuanLyKtx
                 if (DatabaseConnection.TestConnection(out string err))
                 {
                     Console.WriteLine("DB_SUCCESS: Ket noi C# .NET 8 den SQLite DormitoryDB thanh cong!");
+                    Console.WriteLine($"DB_PATH: {DatabaseConnection.GetDatabasePath()}");
                     var dt = DatabaseHelper.ExecuteQuery("SELECT UserID, Username, FullName, Role FROM Users");
                     Console.WriteLine($"SO_TAI_KHOAN: {dt.Rows.Count}");
                     foreach (DataRow row in dt.Rows)

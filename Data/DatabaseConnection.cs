@@ -71,7 +71,15 @@ namespace QuanLyKtx.Data
             var schemaPath = Path.Combine(AppContext.BaseDirectory, "Database", "DormitoryDB.sql");
             if (!File.Exists(schemaPath))
             {
-                throw new FileNotFoundException("Không tìm thấy script khởi tạo SQLite.", schemaPath);
+                string projectSchemaPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Database", "DormitoryDB.sql"));
+                if (File.Exists(projectSchemaPath))
+                {
+                    schemaPath = projectSchemaPath;
+                }
+                else
+                {
+                    throw new FileNotFoundException("Không tìm thấy script khởi tạo SQLite.", schemaPath);
+                }
             }
 
             using var conn = new SQLiteConnection(ConnectionString);
@@ -111,25 +119,47 @@ namespace QuanLyKtx.Data
             alter.ExecuteNonQuery();
         }
 
-        private static string GetDatabasePath()
+        /// <summary>
+        /// Xác định chính xác đường dẫn file CSDL DormitoryDB.sqlite
+        /// Ưu tiên thư mục gốc dự án C:\Users\trung\Downloads\QuanLyKtx-main\QuanLyKtx-main
+        /// thay vì thư mục bin.
+        /// </summary>
+        public static string GetDatabasePath()
         {
-            // 1. Kiểm tra ngay cạnh file thực thi (AppContext.BaseDirectory)
-            string baseDirDb = Path.Combine(AppContext.BaseDirectory, "DormitoryDB.sqlite");
-            if (File.Exists(baseDirDb)) return baseDirDb;
+            // 1. Kiểm tra thư mục gốc dự án (lùi 3 cấp từ bin/Debug/net8.0-windows hoặc bin/Release/net8.0-windows)
+            string projectDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
+            string projectRootDb = Path.Combine(projectDir, "DormitoryDB.sqlite");
+            if (File.Exists(projectRootDb))
+            {
+                return projectRootDb;
+            }
 
-            // 2. Kiểm tra thư mục làm việc hiện tại (Directory.GetCurrentDirectory)
-            string currentDirDb = Path.Combine(Directory.GetCurrentDirectory(), "DormitoryDB.sqlite");
-            if (File.Exists(currentDirDb)) return currentDirDb;
+            // 2. Đường dẫn trực tiếp cố định theo yêu cầu của hệ thống
+            string explicitPath = @"C:\Users\trung\Downloads\QuanLyKtx-main\QuanLyKtx-main\DormitoryDB.sqlite";
+            if (File.Exists(explicitPath))
+            {
+                return explicitPath;
+            }
 
-            // 3. Kiểm tra thư mục con QuanLyKtx-main (khi chạy từ thư mục root giải pháp)
-            string subDirDb = Path.Combine(Directory.GetCurrentDirectory(), "QuanLyKtx-main", "DormitoryDB.sqlite");
-            if (File.Exists(subDirDb)) return subDirDb;
+            // 3. Kiểm tra thư mục hiện hành (chỉ dùng khi không nằm trong thư mục bin)
+            string currentDir = Directory.GetCurrentDirectory();
+            if (!currentDir.Contains(Path.DirectorySeparatorChar + "bin", StringComparison.OrdinalIgnoreCase))
+            {
+                string currentDb = Path.Combine(currentDir, "DormitoryDB.sqlite");
+                if (File.Exists(currentDb)) return currentDb;
 
-            // 4. Kiểm tra thư mục gốc dự án khi Debug trong Visual Studio (lùi 3 cấp từ bin/Debug/net8.0-windows)
-            string projectRootDb = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "DormitoryDB.sqlite"));
-            if (File.Exists(projectRootDb)) return projectRootDb;
+                string subDirDb = Path.Combine(currentDir, "QuanLyKtx-main", "DormitoryDB.sqlite");
+                if (File.Exists(subDirDb)) return subDirDb;
+            }
 
-            return baseDirDb;
+            // 4. Nếu có thư mục dự án nguồn thì luôn trỏ về đó (để lưu dữ liệu vào đó)
+            if (Directory.Exists(projectDir))
+            {
+                return projectRootDb;
+            }
+
+            // 5. Fallback cuối cùng nếu triển khai độc lập (Standalone publish không có source code)
+            return Path.Combine(AppContext.BaseDirectory, "DormitoryDB.sqlite");
         }
     }
 }
