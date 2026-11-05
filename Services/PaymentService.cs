@@ -276,26 +276,62 @@ namespace QuanLyKtx.Services
         }
 
         /// <summary>
-        /// Đồng bộ tự động hóa đơn điện nước phòng sang bảng Payments (chờ thanh toán) cho các sinh viên trong phòng
+        /// Lấy sinh viên đại diện phòng (Trưởng phòng / người đứng hợp đồng phòng)
+        /// để gộp tiền phòng và tiền điện nước vào 1 người duy nhất
+        /// </summary>
+        public (int studentId, int? contractId, string studentCode, string fullName) GetRoomRepresentativeStudent(int roomId)
+        {
+            // Ưu tiên 1: Sinh viên có hợp đồng Active trong phòng (ưu tiên mã sinh viên SV001... hoặc hợp đồng sớm nhất)
+            string sql = @"
+                SELECT s.StudentID, c.ContractID, s.StudentCode, s.FullName
+                FROM Contracts c
+                JOIN Students s ON c.StudentID = s.StudentID
+                WHERE c.RoomID = @RoomID AND c.Status = 'Active'
+                ORDER BY s.StudentCode ASC, c.ContractID ASC
+                LIMIT 1";
+
+            var dt = DatabaseHelper.ExecuteQuery(sql, new[] { new SQLiteParameter("@RoomID", roomId) });
+            if (dt.Rows.Count > 0)
+            {
+                return (
+                    Convert.ToInt32(dt.Rows[0]["StudentID"]),
+                    Convert.ToInt32(dt.Rows[0]["ContractID"]),
+                    dt.Rows[0]["StudentCode"].ToString() ?? "",
+                    dt.Rows[0]["FullName"].ToString() ?? ""
+                );
+            }
+
+            // Ưu tiên 2: Sinh viên đang được xếp phòng (RoomAssignments Active)
+            string sqlAssign = @"
+                SELECT s.StudentID, s.StudentCode, s.FullName
+                FROM RoomAssignments ra
+                JOIN Students s ON ra.StudentID = s.StudentID
+                WHERE ra.RoomID = @RoomID AND ra.Status = 'Active'
+                ORDER BY s.StudentCode ASC, ra.AssignmentID ASC
+                LIMIT 1";
+
+            var dtAssign = DatabaseHelper.ExecuteQuery(sqlAssign, new[] { new SQLiteParameter("@RoomID", roomId) });
+            if (dtAssign.Rows.Count > 0)
+            {
+                return (
+                    Convert.ToInt32(dtAssign.Rows[0]["StudentID"]),
+                    null,
+                    dtAssign.Rows[0]["StudentCode"].ToString() ?? "",
+                    dtAssign.Rows[0]["FullName"].ToString() ?? ""
+                );
+            }
+
+            return (0, null, string.Empty, string.Empty);
+        }
+
+        /// <summary>
+        /// Đồng bộ hóa đơn điện nước trọn gói của phòng vào bảng Payments cho 1 sinh viên đại diện phòng
+        /// (Không chia đều cho các sinh viên, gộp trọn gói vào 1 người để dễ quản lý)
         /// </summary>
         public void SyncElectricityWaterToPayments(int roomId, int month, int year, decimal totalAmount)
         {
             try
             {
-                // Lấy danh sách sinh viên đang ở phòng này (RoomAssignments Active hoặc Contracts Active)
-                string getStudentsSql = @"
-                    SELECT DISTINCT s.StudentID, c.ContractID
-                    FROM Students s
-                    JOIN RoomAssignments ra ON s.StudentID = ra.StudentID AND ra.Status = 'Active' AND ra.RoomID = @RoomID
-                    LEFT JOIN Contracts c ON s.StudentID = c.StudentID AND c.RoomID = @RoomID AND c.Status = 'Active'
-                    UNION
-                    SELECT DISTINCT s.StudentID, c.ContractID
-                    FROM Students s
-                    JOIN Contracts c ON s.StudentID = c.StudentID AND c.Status = 'Active' AND c.RoomID = @RoomID
-                    WHERE s.StudentID NOT IN (SELECT StudentID FROM RoomAssignments WHERE RoomID = @RoomID AND Status = 'Active')";
-
-                var dtStudents = DatabaseHelper.ExecuteQuery(getStudentsSql, new[] { new SQLiteParameter("@RoomID", roomId) });
-
                 // Lấy thông tin phòng
                 string roomInfoSql = @"
                     SELECT r.RoomNumber, b.BuildingName 
@@ -307,61 +343,65 @@ namespace QuanLyKtx.Services
                     ? $"{dtRoom.Rows[0]["BuildingName"]} P.{dtRoom.Rows[0]["RoomNumber"]}"
                     : $"Phòng {roomId}";
 
-                int studentCount = dtStudents.Rows.Count;
-                if (studentCount > 0 && totalAmount > 0)
+                // Lấy 1 sinh viên đại diện phòng duy nhất
+                var rep = GetRoomRepresentativeStudent(roomId);
+                if (rep.studentId <= 0 || totalAmount <= 0) return;
+
+                string desc = $"Tiền điện nước T{month}/{year} - {roomTitle} (Trọn gói cả phòng)";
+                string pattern = $"%T{month}/{year}%";
+
+                // Xóa mọi khoản điện nước Pending lẻ tẻ của các sinh viên khác trong cùng phòng (tránh chia nhỏ lẻ)
+                string cleanOthersSql = @"
+                    DELETE FROM Payments 
+                    WHERE PaymentType = 'Tiền điện nước' AND Status = 'Pending' 
+                    AND Description LIKE @Pattern AND StudentID != @StudentID";
+                DatabaseHelper.ExecuteNonQuery(cleanOthersSql, new[]
                 {
-                    decimal perStudent = Math.Round(totalAmount / studentCount, 0);
+                    new SQLiteParameter("@Pattern", pattern),
+                    new SQLiteParameter("@StudentID", rep.studentId)
+                });
 
-                    foreach (DataRow row in dtStudents.Rows)
+                // Kiểm tra xem sinh viên đại diện đã có khoản thu này chưa
+                string checkSql = @"
+                    SELECT PaymentID, Status FROM Payments 
+                    WHERE StudentID = @StudentID AND PaymentType = 'Tiền điện nước' 
+                    AND Description LIKE @Pattern";
+                var dtExisting = DatabaseHelper.ExecuteQuery(checkSql, new[]
+                {
+                    new SQLiteParameter("@StudentID", rep.studentId),
+                    new SQLiteParameter("@Pattern", pattern)
+                });
+
+                if (dtExisting.Rows.Count == 0)
+                {
+                    string insertPaySql = @"
+                        INSERT INTO Payments (StudentID, ContractID, PaymentDate, Amount, PaymentType, Description, Status)
+                        VALUES (@StudentID, @ContractID, @PaymentDate, @Amount, 'Tiền điện nước', @Description, 'Pending')";
+                    DatabaseHelper.ExecuteNonQuery(insertPaySql, new[]
                     {
-                        int studentId = Convert.ToInt32(row["StudentID"]);
-                        object? contractId = row["ContractID"] != DBNull.Value ? row["ContractID"] : null;
-                        string desc = $"Tiền điện nước T{month}/{year} - {roomTitle}" + (studentCount > 1 ? $" (Tổng {totalAmount:N0}đ / {studentCount} SV)" : "");
-
-                        // Kiểm tra xem đã tồn tại khoản thu điện nước của tháng này chưa
-                        string checkSql = @"
-                            SELECT PaymentID, Status FROM Payments 
-                            WHERE StudentID = @StudentID AND PaymentType = 'Tiền điện nước' 
-                            AND Description LIKE @Pattern";
-                        string pattern = $"%T{month}/{year}%";
-                        var dtExisting = DatabaseHelper.ExecuteQuery(checkSql, new[]
+                        new SQLiteParameter("@StudentID", rep.studentId),
+                        new SQLiteParameter("@ContractID", (object?)rep.contractId ?? DBNull.Value),
+                        new SQLiteParameter("@PaymentDate", DateTime.Today.ToString("yyyy-MM-dd")),
+                        new SQLiteParameter("@Amount", totalAmount),
+                        new SQLiteParameter("@Description", desc)
+                    });
+                }
+                else
+                {
+                    int payId = Convert.ToInt32(dtExisting.Rows[0]["PaymentID"]);
+                    string payStatus = dtExisting.Rows[0]["Status"].ToString() ?? "Pending";
+                    if (payStatus == "Pending")
+                    {
+                        string updatePaySql = @"
+                            UPDATE Payments
+                            SET Amount = @Amount, Description = @Description
+                            WHERE PaymentID = @PaymentID";
+                        DatabaseHelper.ExecuteNonQuery(updatePaySql, new[]
                         {
-                            new SQLiteParameter("@StudentID", studentId),
-                            new SQLiteParameter("@Pattern", pattern)
+                            new SQLiteParameter("@Amount", totalAmount),
+                            new SQLiteParameter("@Description", desc),
+                            new SQLiteParameter("@PaymentID", payId)
                         });
-
-                        if (dtExisting.Rows.Count == 0)
-                        {
-                            string insertPaySql = @"
-                                INSERT INTO Payments (StudentID, ContractID, PaymentDate, Amount, PaymentType, Description, Status)
-                                VALUES (@StudentID, @ContractID, @PaymentDate, @Amount, 'Tiền điện nước', @Description, 'Pending')";
-                            DatabaseHelper.ExecuteNonQuery(insertPaySql, new[]
-                            {
-                                new SQLiteParameter("@StudentID", studentId),
-                                new SQLiteParameter("@ContractID", contractId ?? DBNull.Value),
-                                new SQLiteParameter("@PaymentDate", DateTime.Today.ToString("yyyy-MM-dd")),
-                                new SQLiteParameter("@Amount", perStudent),
-                                new SQLiteParameter("@Description", desc)
-                            });
-                        }
-                        else
-                        {
-                            int payId = Convert.ToInt32(dtExisting.Rows[0]["PaymentID"]);
-                            string payStatus = dtExisting.Rows[0]["Status"].ToString() ?? "Pending";
-                            if (payStatus == "Pending")
-                            {
-                                string updatePaySql = @"
-                                    UPDATE Payments
-                                    SET Amount = @Amount, Description = @Description
-                                    WHERE PaymentID = @PaymentID";
-                                DatabaseHelper.ExecuteNonQuery(updatePaySql, new[]
-                                {
-                                    new SQLiteParameter("@Amount", perStudent),
-                                    new SQLiteParameter("@Description", desc),
-                                    new SQLiteParameter("@PaymentID", payId)
-                                });
-                            }
-                        }
                     }
                 }
             }

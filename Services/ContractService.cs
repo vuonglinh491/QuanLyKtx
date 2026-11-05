@@ -152,36 +152,56 @@ namespace QuanLyKtx.Services
                     ? $"{dtRoom.Rows[0]["BuildingName"]} P.{dtRoom.Rows[0]["RoomNumber"]}"
                     : $"Phòng ID {contract.RoomID}";
 
-                // 1. Tự động thêm hóa đơn Tiền phòng vào phần chờ thanh toán (Pending)
-                if (contract.MonthlyFee > 0)
+                // Kiểm tra xem phòng này đã có hợp đồng Active của sinh viên khác đại diện đóng tiền phòng chưa
+                string checkExistingContract = @"
+                    SELECT c.ContractID, s.FullName, s.StudentCode 
+                    FROM Contracts c
+                    JOIN Students s ON c.StudentID = s.StudentID
+                    WHERE c.RoomID = @RoomID AND c.Status = 'Active' AND c.ContractID != @ContractID
+                    ORDER BY s.StudentCode ASC
+                    LIMIT 1";
+                var dtExisting = DatabaseHelper.ExecuteQuery(checkExistingContract, new[]
                 {
-                    string insertPaySql = @"
-                        INSERT INTO Payments (StudentID, ContractID, PaymentDate, Amount, PaymentType, Description, Status)
-                        VALUES (@StudentID, @ContractID, @PaymentDate, @Amount, 'Tiền phòng', @Description, 'Pending')";
-                    DatabaseHelper.ExecuteNonQuery(insertPaySql, new[]
-                    {
-                        new SQLiteParameter("@StudentID", contract.StudentID),
-                        new SQLiteParameter("@ContractID", contractId),
-                        new SQLiteParameter("@PaymentDate", contract.StartDate.Date.ToString("yyyy-MM-dd")),
-                        new SQLiteParameter("@Amount", contract.MonthlyFee),
-                        new SQLiteParameter("@Description", $"Tiền phòng KTX - Hợp đồng HD{contractId:D4} ({roomTitle})")
-                    });
-                }
+                    new SQLiteParameter("@RoomID", contract.RoomID),
+                    new SQLiteParameter("@ContractID", contractId)
+                });
 
-                // 2. Nếu có tiền đặt cọc phòng > 0, thêm hóa đơn tiền cọc vào phần chờ thanh toán
-                if (contract.Deposit > 0)
+                // Nếu phòng đã có sinh viên khác đứng hợp đồng đại diện, không tạo hóa đơn tiền phòng trùng lặp
+                bool isRoomRepresentative = (dtExisting.Rows.Count == 0);
+
+                if (isRoomRepresentative)
                 {
-                    string insertDepositSql = @"
-                        INSERT INTO Payments (StudentID, ContractID, PaymentDate, Amount, PaymentType, Description, Status)
-                        VALUES (@StudentID, @ContractID, @PaymentDate, @Amount, 'Tiền cọc phòng', @Description, 'Pending')";
-                    DatabaseHelper.ExecuteNonQuery(insertDepositSql, new[]
+                    // 1. Tự động thêm hóa đơn Tiền phòng vào phần chờ thanh toán (Pending)
+                    if (contract.MonthlyFee > 0)
                     {
-                        new SQLiteParameter("@StudentID", contract.StudentID),
-                        new SQLiteParameter("@ContractID", contractId),
-                        new SQLiteParameter("@PaymentDate", contract.StartDate.Date.ToString("yyyy-MM-dd")),
-                        new SQLiteParameter("@Amount", contract.Deposit),
-                        new SQLiteParameter("@Description", $"Tiền đặt cọc KTX - Hợp đồng HD{contractId:D4} ({roomTitle})")
-                    });
+                        string insertPaySql = @"
+                            INSERT INTO Payments (StudentID, ContractID, PaymentDate, Amount, PaymentType, Description, Status)
+                            VALUES (@StudentID, @ContractID, @PaymentDate, @Amount, 'Tiền phòng', @Description, 'Pending')";
+                        DatabaseHelper.ExecuteNonQuery(insertPaySql, new[]
+                        {
+                            new SQLiteParameter("@StudentID", contract.StudentID),
+                            new SQLiteParameter("@ContractID", contractId),
+                            new SQLiteParameter("@PaymentDate", contract.StartDate.Date.ToString("yyyy-MM-dd")),
+                            new SQLiteParameter("@Amount", contract.MonthlyFee),
+                            new SQLiteParameter("@Description", $"Tiền phòng KTX - Hợp đồng HD{contractId:D4} ({roomTitle}) [Trọn gói phòng]")
+                        });
+                    }
+
+                    // 2. Nếu có tiền đặt cọc phòng > 0, thêm hóa đơn tiền cọc vào phần chờ thanh toán
+                    if (contract.Deposit > 0)
+                    {
+                        string insertDepositSql = @"
+                            INSERT INTO Payments (StudentID, ContractID, PaymentDate, Amount, PaymentType, Description, Status)
+                            VALUES (@StudentID, @ContractID, @PaymentDate, @Amount, 'Tiền cọc phòng', @Description, 'Pending')";
+                        DatabaseHelper.ExecuteNonQuery(insertDepositSql, new[]
+                        {
+                            new SQLiteParameter("@StudentID", contract.StudentID),
+                            new SQLiteParameter("@ContractID", contractId),
+                            new SQLiteParameter("@PaymentDate", contract.StartDate.Date.ToString("yyyy-MM-dd")),
+                            new SQLiteParameter("@Amount", contract.Deposit),
+                            new SQLiteParameter("@Description", $"Tiền đặt cọc KTX - Hợp đồng HD{contractId:D4} ({roomTitle}) [Trọn gói phòng]")
+                        });
+                    }
                 }
 
                 return true;
