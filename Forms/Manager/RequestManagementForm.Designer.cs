@@ -139,7 +139,7 @@ namespace QuanLyKtx.Forms.Manager
             cboFilterType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             cboFilterType.Font = new System.Drawing.Font("Segoe UI", 9.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             cboFilterType.FormattingEnabled = true;
-            cboFilterType.Items.AddRange(new object[] { "Tất cả", "Đăng ký phòng", "Chuyển phòng", "Trả phòng" });
+            cboFilterType.Items.AddRange(new object[] { "Tất cả", "Đăng ký phòng", "Chuyển phòng", "Trả phòng", "Xác nhận nộp phí" });
             cboFilterType.Location = new System.Drawing.Point(355, 15);
             cboFilterType.Name = "cboFilterType";
             cboFilterType.Size = new System.Drawing.Size(170, 24);

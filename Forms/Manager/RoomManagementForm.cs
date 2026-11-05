@@ -100,6 +100,7 @@ namespace QuanLyKtx.Forms.Manager
                 if (dgvRooms.Columns["RoomID"] != null) dgvRooms.Columns["RoomID"].Visible = false;
                 if (dgvRooms.Columns["BuildingID"] != null) dgvRooms.Columns["BuildingID"].Visible = false;
                 if (dgvRooms.Columns["StatusCode"] != null) dgvRooms.Columns["StatusCode"].Visible = false;
+                if (dgvRooms.Columns["RoomDisplayName"] != null) dgvRooms.Columns["RoomDisplayName"].Visible = false;
 
                 // Căn chỉnh độ rộng cột
                 if (dgvRooms.Columns["Khu nhà"] != null) dgvRooms.Columns["Khu nhà"].Width = 110;

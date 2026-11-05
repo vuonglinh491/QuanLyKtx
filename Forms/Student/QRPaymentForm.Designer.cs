@@ -299,6 +299,7 @@ namespace QuanLyKtx.Forms.Student
             MinimizeBox         = false;
             StartPosition       = System.Windows.Forms.FormStartPosition.CenterParent;
             Text                = "Thanh toán QR - KTX";
+            Load               += QRPaymentForm_Load;
             Controls.Add(pnlQR);
             Controls.Add(pnlInfo);
             Controls.Add(pnlButtons);

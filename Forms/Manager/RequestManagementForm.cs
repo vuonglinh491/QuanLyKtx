@@ -83,6 +83,7 @@ namespace QuanLyKtx.Forms.Manager
                 if (cboFilterType.SelectedIndex == 1) typeFilter = "RegisterRoom";
                 else if (cboFilterType.SelectedIndex == 2) typeFilter = "ChangeRoom";
                 else if (cboFilterType.SelectedIndex == 3) typeFilter = "LeaveRoom";
+                else if (cboFilterType.SelectedIndex == 4) typeFilter = "PaymentConfirmation";
 
                 string keyword = txtSearch.Text.Trim();
 

@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Data.SQLite;
 using QuanLyKtx.Data;
 using QuanLyKtx.Models;
@@ -63,7 +64,7 @@ namespace QuanLyKtx.Services
 
             if (!string.IsNullOrWhiteSpace(keyword))
             {
-                sb.Append(" AND (r.RoomNumber LIKE @kw OR b.BuildingName LIKE @kw) ");
+                sb.Append(" AND (r.RoomNumber LIKE @kw OR b.BuildingName LIKE @kw OR (b.BuildingName || ' ' || r.RoomNumber) LIKE @kw OR (b.BuildingName || ' - Phòng ' || r.RoomNumber) LIKE @kw) ");
                 parameters.Add(new SQLiteParameter("@kw", $"%{keyword.Trim()}%"));
             }
 
@@ -328,6 +329,10 @@ namespace QuanLyKtx.Services
         /// Đồng bộ hóa đơn điện nước trọn gói của phòng vào bảng Payments cho 1 sinh viên đại diện phòng
         /// (Không chia đều cho các sinh viên, gộp trọn gói vào 1 người để dễ quản lý)
         /// </summary>
+        /// <summary>
+        /// Đồng bộ hóa đơn tiền điện nước tới TOÀN BỘ sinh viên đang ở trong phòng.
+        /// Khi bất kỳ sinh viên nào trong phòng thanh toán, hệ thống sẽ tự động cập nhật cho các sinh viên còn lại.
+        /// </summary>
         public void SyncElectricityWaterToPayments(int roomId, int month, int year, decimal totalAmount)
         {
             try
@@ -343,65 +348,68 @@ namespace QuanLyKtx.Services
                     ? $"{dtRoom.Rows[0]["BuildingName"]} P.{dtRoom.Rows[0]["RoomNumber"]}"
                     : $"Phòng {roomId}";
 
-                // Lấy 1 sinh viên đại diện phòng duy nhất
-                var rep = GetRoomRepresentativeStudent(roomId);
-                if (rep.studentId <= 0 || totalAmount <= 0) return;
+                // Lấy danh sách TẤT CẢ sinh viên đang có hợp đồng hoặc đang lưu trú trong phòng này
+                string studentsInRoomSql = @"
+                    SELECT DISTINCT s.StudentID, s.StudentCode, s.FullName, c.ContractID
+                    FROM Students s
+                    LEFT JOIN Contracts c ON s.StudentID = c.StudentID AND c.RoomID = @RoomID AND c.Status = 'Active'
+                    WHERE s.StudentID IN (
+                        SELECT StudentID FROM Contracts WHERE RoomID = @RoomID AND Status = 'Active'
+                        UNION
+                        SELECT StudentID FROM RoomAssignments WHERE RoomID = @RoomID AND (Status = 'Active' OR EndDate IS NULL)
+                    )";
+                var dtStudents = DatabaseHelper.ExecuteQuery(studentsInRoomSql, new[] { new SQLiteParameter("@RoomID", roomId) });
+                if (dtStudents.Rows.Count == 0 || totalAmount <= 0) return;
 
-                string desc = $"Tiền điện nước T{month}/{year} - {roomTitle} (Trọn gói cả phòng)";
-                string pattern = $"%T{month}/{year}%";
+                string desc = $"Tiền điện nước T{month}/{year} - {roomTitle} [Phòng {roomId}] (Trọn gói cả phòng)";
+                string pattern = $"%T{month}/{year}%[Phòng {roomId}]%";
 
-                // Xóa mọi khoản điện nước Pending lẻ tẻ của các sinh viên khác trong cùng phòng (tránh chia nhỏ lẻ)
-                string cleanOthersSql = @"
-                    DELETE FROM Payments 
-                    WHERE PaymentType = 'Tiền điện nước' AND Status = 'Pending' 
-                    AND Description LIKE @Pattern AND StudentID != @StudentID";
-                DatabaseHelper.ExecuteNonQuery(cleanOthersSql, new[]
+                foreach (DataRow row in dtStudents.Rows)
                 {
-                    new SQLiteParameter("@Pattern", pattern),
-                    new SQLiteParameter("@StudentID", rep.studentId)
-                });
+                    int studentId = Convert.ToInt32(row["StudentID"]);
+                    int? contractId = (row["ContractID"] != DBNull.Value) ? Convert.ToInt32(row["ContractID"]) : null;
 
-                // Kiểm tra xem sinh viên đại diện đã có khoản thu này chưa
-                string checkSql = @"
-                    SELECT PaymentID, Status FROM Payments 
-                    WHERE StudentID = @StudentID AND PaymentType = 'Tiền điện nước' 
-                    AND Description LIKE @Pattern";
-                var dtExisting = DatabaseHelper.ExecuteQuery(checkSql, new[]
-                {
-                    new SQLiteParameter("@StudentID", rep.studentId),
-                    new SQLiteParameter("@Pattern", pattern)
-                });
-
-                if (dtExisting.Rows.Count == 0)
-                {
-                    string insertPaySql = @"
-                        INSERT INTO Payments (StudentID, ContractID, PaymentDate, Amount, PaymentType, Description, Status)
-                        VALUES (@StudentID, @ContractID, @PaymentDate, @Amount, 'Tiền điện nước', @Description, 'Pending')";
-                    DatabaseHelper.ExecuteNonQuery(insertPaySql, new[]
+                    string checkSql = @"
+                        SELECT PaymentID, Status FROM Payments 
+                        WHERE StudentID = @StudentID AND PaymentType = 'Tiền điện nước' 
+                        AND Description LIKE @Pattern";
+                    var dtExisting = DatabaseHelper.ExecuteQuery(checkSql, new[]
                     {
-                        new SQLiteParameter("@StudentID", rep.studentId),
-                        new SQLiteParameter("@ContractID", (object?)rep.contractId ?? DBNull.Value),
-                        new SQLiteParameter("@PaymentDate", DateTime.Today.ToString("yyyy-MM-dd")),
-                        new SQLiteParameter("@Amount", totalAmount),
-                        new SQLiteParameter("@Description", desc)
+                        new SQLiteParameter("@StudentID", studentId),
+                        new SQLiteParameter("@Pattern", pattern)
                     });
-                }
-                else
-                {
-                    int payId = Convert.ToInt32(dtExisting.Rows[0]["PaymentID"]);
-                    string payStatus = dtExisting.Rows[0]["Status"].ToString() ?? "Pending";
-                    if (payStatus == "Pending")
+
+                    if (dtExisting.Rows.Count == 0)
                     {
-                        string updatePaySql = @"
-                            UPDATE Payments
-                            SET Amount = @Amount, Description = @Description
-                            WHERE PaymentID = @PaymentID";
-                        DatabaseHelper.ExecuteNonQuery(updatePaySql, new[]
+                        string insertPaySql = @"
+                            INSERT INTO Payments (StudentID, ContractID, PaymentDate, Amount, PaymentType, Description, Status)
+                            VALUES (@StudentID, @ContractID, @PaymentDate, @Amount, 'Tiền điện nước', @Description, 'Pending')";
+                        DatabaseHelper.ExecuteNonQuery(insertPaySql, new[]
                         {
+                            new SQLiteParameter("@StudentID", studentId),
+                            new SQLiteParameter("@ContractID", (object?)contractId ?? DBNull.Value),
+                            new SQLiteParameter("@PaymentDate", DateTime.Today.ToString("yyyy-MM-dd")),
                             new SQLiteParameter("@Amount", totalAmount),
-                            new SQLiteParameter("@Description", desc),
-                            new SQLiteParameter("@PaymentID", payId)
+                            new SQLiteParameter("@Description", desc)
                         });
+                    }
+                    else
+                    {
+                        int payId = Convert.ToInt32(dtExisting.Rows[0]["PaymentID"]);
+                        string payStatus = dtExisting.Rows[0]["Status"].ToString() ?? "Pending";
+                        if (payStatus == "Pending")
+                        {
+                            string updatePaySql = @"
+                                UPDATE Payments
+                                SET Amount = @Amount, Description = @Description
+                                WHERE PaymentID = @PaymentID";
+                            DatabaseHelper.ExecuteNonQuery(updatePaySql, new[]
+                            {
+                                new SQLiteParameter("@Amount", totalAmount),
+                                new SQLiteParameter("@Description", desc),
+                                new SQLiteParameter("@PaymentID", payId)
+                            });
+                        }
                     }
                 }
             }
@@ -631,14 +639,19 @@ namespace QuanLyKtx.Services
         }
 
         /// <summary>
-        /// Sinh viên xác nhận đã chuyển khoản qua QR, gửi yêu cầu tới Admin để chờ duyệt
+        /// Sinh viên xác nhận đã chuyển khoản qua QR, gửi yêu cầu đối soát tới Admin để chờ duyệt.
+        /// Đồng thời tự động tạo bản ghi trong bảng Requests để Admin theo dõi và duyệt.
         /// </summary>
         public bool RequestPaymentConfirmation(int paymentId, string? studentNote, out string errorMessage)
         {
             errorMessage = string.Empty;
             try
             {
-                string getSql = "SELECT Description FROM Payments WHERE PaymentID = @PaymentID AND Status = 'Pending'";
+                string getSql = @"
+                    SELECT p.PaymentID, p.StudentID, p.Amount, p.PaymentType, p.Description, s.StudentCode, s.FullName
+                    FROM Payments p
+                    JOIN Students s ON p.StudentID = s.StudentID
+                    WHERE p.PaymentID = @PaymentID AND p.Status = 'Pending'";
                 var dt = DatabaseHelper.ExecuteQuery(getSql, new[] { new SQLiteParameter("@PaymentID", paymentId) });
                 if (dt.Rows.Count == 0)
                 {
@@ -646,7 +659,13 @@ namespace QuanLyKtx.Services
                     return false;
                 }
 
+                int studentId = Convert.ToInt32(dt.Rows[0]["StudentID"]);
+                decimal amount = Convert.ToDecimal(dt.Rows[0]["Amount"]);
+                string paymentType = dt.Rows[0]["PaymentType"].ToString() ?? "Nộp phí";
                 string curDesc = dt.Rows[0]["Description"]?.ToString() ?? "";
+                string sCode = dt.Rows[0]["StudentCode"].ToString() ?? "";
+                string sName = dt.Rows[0]["FullName"].ToString() ?? "";
+
                 string tag = string.IsNullOrWhiteSpace(studentNote)
                     ? "[ĐÃ CHUYỂN KHOẢN - CHỜ DUYỆT]"
                     : $"[ĐÃ CHUYỂN KHOẢN - CHỜ DUYỆT (Mã GD/Ghi chú: {studentNote.Trim()})]";
@@ -676,7 +695,47 @@ namespace QuanLyKtx.Services
                     new SQLiteParameter("@Description", newDesc)
                 });
 
-                return rows > 0;
+                if (rows > 0)
+                {
+                    // Tự động tạo bản ghi Yêu cầu trong bảng Requests để Admin thấy trong mục Xử lý Yêu cầu
+                    string reqContent = $"Xác nhận chuyển khoản: {paymentType} (Phiếu PT{paymentId:D4}) - Số tiền: {amount:N0} VNĐ. " +
+                                        (string.IsNullOrWhiteSpace(studentNote) ? "" : $"Ghi chú GD: {studentNote.Trim()}");
+
+                    string checkReqSql = @"
+                        SELECT RequestID FROM Requests 
+                        WHERE StudentID = @StudentID AND RequestType = 'PaymentConfirmation' 
+                          AND Content LIKE @Pattern AND Status = 'Pending'";
+                    var dtReq = DatabaseHelper.ExecuteQuery(checkReqSql, new[]
+                    {
+                        new SQLiteParameter("@StudentID", studentId),
+                        new SQLiteParameter("@Pattern", $"%PT{paymentId:D4}%")
+                    });
+
+                    if (dtReq.Rows.Count == 0)
+                    {
+                        string insReqSql = @"
+                            INSERT INTO Requests (StudentID, RequestType, Content, CreatedAt, Status)
+                            VALUES (@StudentID, 'PaymentConfirmation', @Content, CURRENT_TIMESTAMP, 'Pending')";
+                        DatabaseHelper.ExecuteNonQuery(insReqSql, new[]
+                        {
+                            new SQLiteParameter("@StudentID", studentId),
+                            new SQLiteParameter("@Content", reqContent)
+                        });
+                    }
+                    else
+                    {
+                        int rId = Convert.ToInt32(dtReq.Rows[0]["RequestID"]);
+                        string upReqSql = "UPDATE Requests SET Content = @Content, CreatedAt = CURRENT_TIMESTAMP WHERE RequestID = @RequestID";
+                        DatabaseHelper.ExecuteNonQuery(upReqSql, new[]
+                        {
+                            new SQLiteParameter("@Content", reqContent),
+                            new SQLiteParameter("@RequestID", rId)
+                        });
+                    }
+                    return true;
+                }
+
+                return false;
             }
             catch (Exception ex)
             {
@@ -686,7 +745,10 @@ namespace QuanLyKtx.Services
         }
 
         /// <summary>
-        /// Đánh dấu khoản thanh toán đã hoàn thành (Pending → Paid)
+        /// Đánh dấu khoản thanh toán đã hoàn thành (Pending → Paid).
+        /// - Áp dụng cho cả Tiền phòng, Tiền điện nước và Tiền phạt vi phạm.
+        /// - Nếu là Tiền điện nước: Tự động cập nhật hoàn thành cho toàn bộ sinh viên trong cùng phòng.
+        /// - Tự động cập nhật bản ghi Requests sang 'Approved'.
         /// </summary>
         public bool MarkAsPaid(int paymentId, out string errorMessage)
         {
@@ -694,7 +756,11 @@ namespace QuanLyKtx.Services
             try
             {
                 // Lấy thông tin khoản thanh toán trước khi cập nhật
-                string sqlGet = "SELECT StudentID, Amount, PaymentType, Description FROM Payments WHERE PaymentID = @PaymentID";
+                string sqlGet = @"
+                    SELECT p.StudentID, p.Amount, p.PaymentType, p.Description, s.StudentCode, s.FullName
+                    FROM Payments p
+                    JOIN Students s ON p.StudentID = s.StudentID
+                    WHERE p.PaymentID = @PaymentID";
                 var dt = DatabaseHelper.ExecuteQuery(sqlGet, new[] { new SQLiteParameter("@PaymentID", paymentId) });
                 if (dt.Rows.Count == 0)
                 {
@@ -706,6 +772,8 @@ namespace QuanLyKtx.Services
                 decimal amount = Convert.ToDecimal(dt.Rows[0]["Amount"]);
                 string paymentType = dt.Rows[0]["PaymentType"].ToString() ?? "";
                 string curDesc = dt.Rows[0]["Description"]?.ToString() ?? "";
+                string payerCode = dt.Rows[0]["StudentCode"].ToString() ?? "";
+                string payerName = dt.Rows[0]["FullName"].ToString() ?? "";
 
                 // Cập nhật tag ghi chú rõ ràng đã được Admin duyệt
                 string updatedDesc = curDesc;
@@ -738,7 +806,41 @@ namespace QuanLyKtx.Services
 
                 if (rows > 0)
                 {
-                    // Nếu là nộp tiền phạt vi phạm, tự động gạch nợ trong bảng Violations
+                    // 1. Nếu là Tiền điện nước: Tự động cập nhật cho TẤT CẢ sinh viên cùng phòng!
+                    if (paymentType.Contains("điện nước", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var matchRoom = Regex.Match(curDesc, @"\[Phòng\s+(\d+)\]");
+                        var matchMonth = Regex.Match(curDesc, @"T(\d+)/(\d+)");
+
+                        if (matchRoom.Success && matchMonth.Success)
+                        {
+                            string rTag = $"%[Phòng {matchRoom.Groups[1].Value}]%";
+                            string mTag = $"%T{matchMonth.Groups[1].Value}/{matchMonth.Groups[2].Value}%";
+                            string syncDesc = $"[ĐÃ THANH TOÁN CHUNG BỞI {payerCode} - {payerName}] ";
+
+                            string sqlSyncRoommates = @"
+                                UPDATE Payments
+                                SET Status = 'Paid',
+                                    PaymentDate = @PaymentDate,
+                                    Description = @SyncDesc || Description
+                                WHERE PaymentType = 'Tiền điện nước'
+                                  AND Status = 'Pending'
+                                  AND PaymentID != @PaidPaymentID
+                                  AND Description LIKE @RoomTag
+                                  AND Description LIKE @MonthTag";
+
+                            DatabaseHelper.ExecuteNonQuery(sqlSyncRoommates, new[]
+                            {
+                                new SQLiteParameter("@PaymentDate", DateTime.Today.ToString("yyyy-MM-dd")),
+                                new SQLiteParameter("@SyncDesc", syncDesc),
+                                new SQLiteParameter("@PaidPaymentID", paymentId),
+                                new SQLiteParameter("@RoomTag", rTag),
+                                new SQLiteParameter("@MonthTag", mTag)
+                            });
+                        }
+                    }
+
+                    // 2. Nếu là nộp tiền phạt vi phạm, tự động gạch nợ trong bảng Violations
                     if (paymentType.Contains("phạt", StringComparison.OrdinalIgnoreCase) || paymentType.Contains("vi phạm", StringComparison.OrdinalIgnoreCase))
                     {
                         string sqlUpdateViolation = @"
@@ -751,6 +853,21 @@ namespace QuanLyKtx.Services
                             new SQLiteParameter("@Amount", amount)
                         });
                     }
+
+                    // 3. Tự động cập nhật bản ghi Requests sang Approved
+                    string appReqSql = @"
+                        UPDATE Requests 
+                        SET Status = 'Approved', 
+                            ProcessedAt = CURRENT_TIMESTAMP,
+                            ManagerNote = 'Quản trị viên đã kiểm tra giao dịch và phê duyệt hoàn tất.'
+                        WHERE RequestType = 'PaymentConfirmation' 
+                          AND Status = 'Pending' 
+                          AND Content LIKE @Pattern";
+                    DatabaseHelper.ExecuteNonQuery(appReqSql, new[]
+                    {
+                        new SQLiteParameter("@Pattern", $"%PT{paymentId:D4}%")
+                    });
+
                     return true;
                 }
 

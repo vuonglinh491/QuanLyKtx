@@ -275,6 +275,7 @@ namespace QuanLyKtx.Services
                         WHEN 'RegisterRoom' THEN 'Đăng ký phòng'
                         WHEN 'ChangeRoom' THEN 'Chuyển phòng'
                         WHEN 'LeaveRoom' THEN 'Trả phòng'
+                        WHEN 'PaymentConfirmation' THEN 'Xác nhận nộp phí'
                         ELSE req.RequestType
                     END AS [Loại yêu cầu],
                     req.Content AS [Nội dung yêu cầu],
@@ -330,6 +331,7 @@ namespace QuanLyKtx.Services
                         WHEN 'RegisterRoom' THEN 'Đăng ký phòng'
                         WHEN 'ChangeRoom' THEN 'Chuyển phòng'
                         WHEN 'LeaveRoom' THEN 'Trả phòng'
+                        WHEN 'PaymentConfirmation' THEN 'Xác nhận nộp phí'
                         ELSE req.RequestType
                     END AS [Loại yêu cầu],
                     req.Content AS [Nội dung],
@@ -562,6 +564,30 @@ namespace QuanLyKtx.Services
                     }
                 }
 
+                else if (reqType == "PaymentConfirmation")
+                {
+                    // Lấy nội dung yêu cầu để trích xuất PaymentID (dạng PTxxxx)
+                    string content = "";
+                    using (var cmdC = new SQLiteCommand("SELECT Content FROM Requests WHERE RequestID = @RID", conn, tran))
+                    {
+                        cmdC.Parameters.AddWithValue("@RID", requestId);
+                        var objC = cmdC.ExecuteScalar();
+                        if (objC != null) content = objC.ToString() ?? "";
+                    }
+
+                    var match = System.Text.RegularExpressions.Regex.Match(content, @"PT(\d+)");
+                    if (match.Success && int.TryParse(match.Groups[1].Value, out int payId))
+                    {
+                        string markPaidSql = @"
+                            UPDATE Payments 
+                            SET Status = 'Paid', PaymentDate = date('now') 
+                            WHERE PaymentID = @PID AND Status = 'Pending'";
+                        using var cmdMark = new SQLiteCommand(markPaidSql, conn, tran);
+                        cmdMark.Parameters.AddWithValue("@PID", payId);
+                        cmdMark.ExecuteNonQuery();
+                    }
+                }
+
                 // 3. Cập nhật trạng thái Request thành Approved
                 string upReqSql = @"
                     UPDATE Requests 
@@ -576,6 +602,28 @@ namespace QuanLyKtx.Services
                 cmdUpReq.ExecuteNonQuery();
 
                 tran.Commit();
+
+                // Đồng bộ sau khi commit nếu là PaymentConfirmation
+                if (reqType == "PaymentConfirmation")
+                {
+                    try
+                    {
+                        var dtC = DatabaseHelper.ExecuteQuery(
+                            "SELECT Content FROM Requests WHERE RequestID = @RID",
+                            new[] { new SQLiteParameter("@RID", requestId) });
+                        if (dtC.Rows.Count > 0)
+                        {
+                            var m = System.Text.RegularExpressions.Regex.Match(dtC.Rows[0]["Content"]?.ToString() ?? "", @"PT(\d+)");
+                            if (m.Success && int.TryParse(m.Groups[1].Value, out int pId))
+                            {
+                                var payService = new PaymentService();
+                                payService.MarkAsPaid(pId, out _);
+                            }
+                        }
+                    }
+                    catch { }
+                }
+
                 return true;
             }
             catch (Exception ex)
@@ -595,6 +643,10 @@ namespace QuanLyKtx.Services
 
             try
             {
+                var dtReq = DatabaseHelper.ExecuteQuery(
+                    "SELECT RequestType, Content FROM Requests WHERE RequestID = @RequestID",
+                    new[] { new SQLiteParameter("@RequestID", requestId) });
+
                 string sql = @"
                     UPDATE Requests 
                     SET Status = 'Rejected', 
@@ -608,7 +660,25 @@ namespace QuanLyKtx.Services
                     new SQLiteParameter("@Note", (object?)managerNote?.Trim() ?? DBNull.Value)
                 };
 
-                return DatabaseHelper.ExecuteNonQuery(sql, parameters) > 0;
+                bool ok = DatabaseHelper.ExecuteNonQuery(sql, parameters) > 0;
+                if (ok && dtReq.Rows.Count > 0)
+                {
+                    string rType = dtReq.Rows[0]["RequestType"]?.ToString() ?? "";
+                    if (rType == "PaymentConfirmation")
+                    {
+                        string content = dtReq.Rows[0]["Content"]?.ToString() ?? "";
+                        var match = System.Text.RegularExpressions.Regex.Match(content, @"PT(\d+)");
+                        if (match.Success && int.TryParse(match.Groups[1].Value, out int payId))
+                        {
+                            string unTagSql = @"
+                                UPDATE Payments 
+                                SET Description = REPLACE(Description, '[ĐÃ CHUYỂN KHOẢN - CHỜ DUYỆT', '[TỪ CHỐI DUYỆT')
+                                WHERE PaymentID = @PID AND Status = 'Pending'";
+                            DatabaseHelper.ExecuteNonQuery(unTagSql, new[] { new SQLiteParameter("@PID", payId) });
+                        }
+                    }
+                }
+                return ok;
             }
             catch (Exception ex)
             {

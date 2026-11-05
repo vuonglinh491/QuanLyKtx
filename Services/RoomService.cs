@@ -149,6 +149,7 @@ namespace QuanLyKtx.Services
                     r.BuildingID,
                     b.BuildingName AS [Khu nhà],
                     r.RoomNumber AS [Số phòng],
+                    b.BuildingName || ' - Phòng ' || r.RoomNumber AS [RoomDisplayName],
                     r.Floor AS [Tầng],
                     r.Capacity AS [Sức chứa],
                     r.CurrentOccupancy AS [Đang ở],

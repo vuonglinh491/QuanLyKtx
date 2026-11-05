@@ -54,7 +54,7 @@ namespace QuanLyKtx.Forms.Manager
             {
                 var dtRooms = _roomService.GetAllRooms();
                 cboRoom.DataSource = dtRooms;
-                cboRoom.DisplayMember = "Số phòng";
+                cboRoom.DisplayMember = "RoomDisplayName";
                 cboRoom.ValueMember = "RoomID";
             }
             catch (Exception ex)

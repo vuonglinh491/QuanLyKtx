@@ -35,10 +35,13 @@ namespace QuanLyKtx.Forms.Student
             InitializeComponent();
             _paymentId      = paymentId;
             _amount         = amount;
-            _paymentType    = paymentType;
-            _description    = description;
-            _studentCode    = studentCode;
+            _paymentType    = string.IsNullOrWhiteSpace(paymentType) ? "Thanh toán KTX" : paymentType;
+            _description    = description ?? string.Empty;
+            _studentCode    = string.IsNullOrWhiteSpace(studentCode) ? "SV" : studentCode;
             _paymentService = new PaymentService();
+
+            ApplyUITheme();
+            PopulateInfo();
         }
 
         private void QRPaymentForm_Load(object? sender, EventArgs e)
@@ -62,10 +65,10 @@ namespace QuanLyKtx.Forms.Student
         // ─────────────────────────────────────────────────────────────
         private void PopulateInfo()
         {
-            lblPaymentTypeValue.Text = _paymentType;
+            lblPaymentTypeValue.Text = string.IsNullOrWhiteSpace(_paymentType) ? "Thanh toán KTX" : _paymentType;
             lblAmountValue.Text      = _amount.ToString("N0") + " VNĐ";
 
-            string note = string.IsNullOrWhiteSpace(_description) ? "—" : _description;
+            string note = string.IsNullOrWhiteSpace(_description) ? _paymentType : _description;
             lblDescriptionValue.Text = $"KTX {_studentCode} - {note}";
         }
 
@@ -109,7 +112,7 @@ namespace QuanLyKtx.Forms.Student
             finally
             {
                 btnGenerateQR.Enabled = true;
-                btnGenerateQR.Text    = "⟳  Tạo lại mã QR";
+                btnGenerateQR.Text    = "📱  Tạo lại mã QR";
             }
         }
 
