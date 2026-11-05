@@ -51,9 +51,9 @@ namespace QuanLyKtx.Forms.Student
 
         private void ApplyUITheme()
         {
-            UITheme.ApplyPrimaryButton(btnGenerateQR, "📱  Tạo mã QR VietQR");
+            UITheme.ApplyPrimaryButton(btnGenerateQR, "📱  Tạo lại mã QR");
             UITheme.ApplySecondaryButton(btnSaveQR, "💾  Lưu ảnh QR");
-            UITheme.ApplySuccessButton(btnMarkPaid, "✅  Đã chuyển khoản xong");
+            UITheme.ApplySuccessButton(btnMarkPaid, "✅  Xác nhận đã thanh toán");
             UITheme.ApplySecondaryButton(btnClose, "Đóng");
         }
 
@@ -92,7 +92,7 @@ namespace QuanLyKtx.Forms.Student
                     _currentQR    = qr;
                     picQR.Image   = qr;
                     lblQRHint.Text = "✅ Mở ứng dụng ngân hàng → Quét QR → Xác nhận số tiền → Chuyển khoản.\n" +
-                                     "Sau khi chuyển thành công, nhấn \"Đã chuyển khoản xong\".";
+                                     "Sau khi chuyển thành công, nhấn \"Xác nhận đã thanh toán\" để gửi yêu cầu duyệt tới Admin.";
                     btnSaveQR.Enabled    = true;
                     btnMarkPaid.Enabled  = true;
                 }
@@ -147,35 +147,106 @@ namespace QuanLyKtx.Forms.Student
         }
 
         // ─────────────────────────────────────────────────────────────
-        // XÁC NHẬN ĐÃ THANH TOÁN
+        // XÁC NHẬN ĐÃ THANH TOÁN (GỬI YÊU CẦU ĐỐI SOÁT TỚI ADMIN)
         // ─────────────────────────────────────────────────────────────
         private void btnMarkPaid_Click(object? sender, EventArgs e)
         {
-            var confirm = MessageBox.Show(
-                $"Bạn xác nhận đã chuyển khoản thành công số tiền:\n\n" +
-                $"   {_amount:N0} VNĐ\n\n" +
-                $"Trạng thái khoản này sẽ được cập nhật thành \"Đã thanh toán\".\n" +
-                $"Vui lòng chỉ xác nhận khi giao dịch ngân hàng đã hoàn tất!",
-                "Xác nhận thanh toán",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
-
-            if (confirm != DialogResult.Yes) return;
-
-            if (_paymentService.MarkAsPaid(_paymentId, out string error))
+            using var confirmDlg = new Form
             {
-                _markedPaid = true;
-                MessageBox.Show(
-                    "✅ Đã ghi nhận thanh toán thành công!\n\nKhoản phí đã được chuyển sang trạng thái \"Đã thanh toán\".",
-                    "Thanh toán thành công",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-                DialogResult = DialogResult.OK;
-                Close();
-            }
-            else
+                Text = "Xác nhận đã chuyển khoản - Gửi Admin duyệt",
+                Size = new Size(500, 300),
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                BackColor = Color.White
+            };
+
+            var lblHeader = new Label
             {
-                MessageBox.Show("Lỗi cập nhật: " + error, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Text = $"Xác nhận đã chuyển khoản {_amount:N0} VNĐ?",
+                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(15, 76, 129),
+                Location = new Point(20, 16),
+                Size = new Size(445, 26)
+            };
+
+            var lblSub = new Label
+            {
+                Text = $"Khoản chi phí: {_paymentType}\n" +
+                       "Hệ thống sẽ gửi yêu cầu đối soát ngân hàng tới Ban quản lý KTX.\n" +
+                       "Bạn có thể nhập Mã giao dịch ngân hàng / Tên tài khoản chuyển tiền:",
+                Font = new Font("Segoe UI", 9F),
+                ForeColor = Color.FromArgb(71, 85, 105),
+                Location = new Point(20, 48),
+                Size = new Size(445, 54)
+            };
+
+            var txtNote = new TextBox
+            {
+                Location = new Point(20, 110),
+                Size = new Size(445, 27),
+                Font = new Font("Segoe UI", 10F),
+                PlaceholderText = "VD: Đã CK từ VCB lúc 08:30, MaGD 123456789..."
+            };
+
+            var pnlActions = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 60,
+                BackColor = Color.FromArgb(248, 250, 252)
+            };
+
+            var btnConfirm = new Button
+            {
+                Text = "📩  Gửi yêu cầu tới Admin",
+                DialogResult = DialogResult.OK,
+                Size = new Size(195, 36),
+                Location = new Point(140, 12),
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold)
+            };
+            UITheme.ApplySuccessButton(btnConfirm, "📩  Gửi yêu cầu tới Admin");
+
+            var btnCancel = new Button
+            {
+                Text = "Hủy bỏ",
+                DialogResult = DialogResult.Cancel,
+                Size = new Size(95, 36),
+                Location = new Point(345, 12),
+                Font = new Font("Segoe UI", 9.5F)
+            };
+            UITheme.ApplySecondaryButton(btnCancel, "Hủy bỏ");
+
+            pnlActions.Controls.Add(btnConfirm);
+            pnlActions.Controls.Add(btnCancel);
+            confirmDlg.AcceptButton = btnConfirm;
+            confirmDlg.CancelButton = btnCancel;
+
+            confirmDlg.Controls.Add(pnlActions);
+            confirmDlg.Controls.Add(txtNote);
+            confirmDlg.Controls.Add(lblSub);
+            confirmDlg.Controls.Add(lblHeader);
+
+            if (confirmDlg.ShowDialog(this) == DialogResult.OK)
+            {
+                string note = txtNote.Text.Trim();
+                if (_paymentService.RequestPaymentConfirmation(_paymentId, note, out string error))
+                {
+                    _markedPaid = true;
+                    MessageBox.Show(
+                        "✅ Đã gửi yêu cầu xác nhận thanh toán thành công!\n\n" +
+                        "Hệ thống đã chuyển khoản phí này sang trạng thái \"⏳ Chờ Admin duyệt\".\n" +
+                        "Ban quản lý KTX sẽ kiểm tra sao kê ngân hàng và phê duyệt hoàn tất cho bạn.",
+                        "Gửi yêu cầu thành công",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                    DialogResult = DialogResult.OK;
+                    Close();
+                }
+                else
+                {
+                    MessageBox.Show("Lỗi gửi yêu cầu: " + error, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 

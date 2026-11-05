@@ -157,7 +157,12 @@ namespace QuanLyKtx.Services
                     new SQLiteParameter("@TotalAmount", totalAmount)
                 };
 
-                return DatabaseHelper.ExecuteNonQuery(sql, parameters) > 0;
+                bool success = DatabaseHelper.ExecuteNonQuery(sql, parameters) > 0;
+                if (success && totalAmount > 0)
+                {
+                    SyncElectricityWaterToPayments(ew.RoomID, ew.Month, ew.Year, totalAmount);
+                }
+                return success;
             }
             catch (Exception ex)
             {
@@ -216,7 +221,21 @@ namespace QuanLyKtx.Services
                     new SQLiteParameter("@TotalAmount", totalAmount)
                 };
 
-                return DatabaseHelper.ExecuteNonQuery(sql, parameters) > 0;
+                bool success = DatabaseHelper.ExecuteNonQuery(sql, parameters) > 0;
+                if (success && totalAmount > 0)
+                {
+                    // Lấy lại RoomID, Month, Year
+                    string getSql = "SELECT RoomID, Month, Year FROM ElectricityWater WHERE RecordID = @RecordID";
+                    var dt = DatabaseHelper.ExecuteQuery(getSql, new[] { new SQLiteParameter("@RecordID", ew.RecordID) });
+                    if (dt.Rows.Count > 0)
+                    {
+                        int rId = Convert.ToInt32(dt.Rows[0]["RoomID"]);
+                        int m = Convert.ToInt32(dt.Rows[0]["Month"]);
+                        int y = Convert.ToInt32(dt.Rows[0]["Year"]);
+                        SyncElectricityWaterToPayments(rId, m, y, totalAmount);
+                    }
+                }
+                return success;
             }
             catch (Exception ex)
             {
@@ -234,6 +253,18 @@ namespace QuanLyKtx.Services
 
             try
             {
+                // Trước khi xóa, lấy thông tin tháng/năm/phòng để dọn dẹp các hóa đơn Pending tương ứng
+                string getSql = "SELECT RoomID, Month, Year FROM ElectricityWater WHERE RecordID = @RecordID";
+                var dt = DatabaseHelper.ExecuteQuery(getSql, new[] { new SQLiteParameter("@RecordID", recordId) });
+                if (dt.Rows.Count > 0)
+                {
+                    int m = Convert.ToInt32(dt.Rows[0]["Month"]);
+                    int y = Convert.ToInt32(dt.Rows[0]["Year"]);
+                    string pattern = $"%T{m}/{y}%";
+                    string delPendingSql = "DELETE FROM Payments WHERE PaymentType = 'Tiền điện nước' AND Status = 'Pending' AND Description LIKE @Pattern";
+                    DatabaseHelper.ExecuteNonQuery(delPendingSql, new[] { new SQLiteParameter("@Pattern", pattern) });
+                }
+
                 string sql = "DELETE FROM ElectricityWater WHERE RecordID = @RecordID";
                 return DatabaseHelper.ExecuteNonQuery(sql, new[] { new SQLiteParameter("@RecordID", recordId) }) > 0;
             }
@@ -242,6 +273,99 @@ namespace QuanLyKtx.Services
                 errorMessage = "Lỗi khi xóa bản ghi điện nước: " + ex.Message;
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Đồng bộ tự động hóa đơn điện nước phòng sang bảng Payments (chờ thanh toán) cho các sinh viên trong phòng
+        /// </summary>
+        public void SyncElectricityWaterToPayments(int roomId, int month, int year, decimal totalAmount)
+        {
+            try
+            {
+                // Lấy danh sách sinh viên đang ở phòng này (RoomAssignments Active hoặc Contracts Active)
+                string getStudentsSql = @"
+                    SELECT DISTINCT s.StudentID, c.ContractID
+                    FROM Students s
+                    JOIN RoomAssignments ra ON s.StudentID = ra.StudentID AND ra.Status = 'Active' AND ra.RoomID = @RoomID
+                    LEFT JOIN Contracts c ON s.StudentID = c.StudentID AND c.RoomID = @RoomID AND c.Status = 'Active'
+                    UNION
+                    SELECT DISTINCT s.StudentID, c.ContractID
+                    FROM Students s
+                    JOIN Contracts c ON s.StudentID = c.StudentID AND c.Status = 'Active' AND c.RoomID = @RoomID
+                    WHERE s.StudentID NOT IN (SELECT StudentID FROM RoomAssignments WHERE RoomID = @RoomID AND Status = 'Active')";
+
+                var dtStudents = DatabaseHelper.ExecuteQuery(getStudentsSql, new[] { new SQLiteParameter("@RoomID", roomId) });
+
+                // Lấy thông tin phòng
+                string roomInfoSql = @"
+                    SELECT r.RoomNumber, b.BuildingName 
+                    FROM Rooms r 
+                    JOIN Buildings b ON r.BuildingID = b.BuildingID 
+                    WHERE r.RoomID = @RoomID";
+                var dtRoom = DatabaseHelper.ExecuteQuery(roomInfoSql, new[] { new SQLiteParameter("@RoomID", roomId) });
+                string roomTitle = (dtRoom.Rows.Count > 0)
+                    ? $"{dtRoom.Rows[0]["BuildingName"]} P.{dtRoom.Rows[0]["RoomNumber"]}"
+                    : $"Phòng {roomId}";
+
+                int studentCount = dtStudents.Rows.Count;
+                if (studentCount > 0 && totalAmount > 0)
+                {
+                    decimal perStudent = Math.Round(totalAmount / studentCount, 0);
+
+                    foreach (DataRow row in dtStudents.Rows)
+                    {
+                        int studentId = Convert.ToInt32(row["StudentID"]);
+                        object? contractId = row["ContractID"] != DBNull.Value ? row["ContractID"] : null;
+                        string desc = $"Tiền điện nước T{month}/{year} - {roomTitle}" + (studentCount > 1 ? $" (Tổng {totalAmount:N0}đ / {studentCount} SV)" : "");
+
+                        // Kiểm tra xem đã tồn tại khoản thu điện nước của tháng này chưa
+                        string checkSql = @"
+                            SELECT PaymentID, Status FROM Payments 
+                            WHERE StudentID = @StudentID AND PaymentType = 'Tiền điện nước' 
+                            AND Description LIKE @Pattern";
+                        string pattern = $"%T{month}/{year}%";
+                        var dtExisting = DatabaseHelper.ExecuteQuery(checkSql, new[]
+                        {
+                            new SQLiteParameter("@StudentID", studentId),
+                            new SQLiteParameter("@Pattern", pattern)
+                        });
+
+                        if (dtExisting.Rows.Count == 0)
+                        {
+                            string insertPaySql = @"
+                                INSERT INTO Payments (StudentID, ContractID, PaymentDate, Amount, PaymentType, Description, Status)
+                                VALUES (@StudentID, @ContractID, @PaymentDate, @Amount, 'Tiền điện nước', @Description, 'Pending')";
+                            DatabaseHelper.ExecuteNonQuery(insertPaySql, new[]
+                            {
+                                new SQLiteParameter("@StudentID", studentId),
+                                new SQLiteParameter("@ContractID", contractId ?? DBNull.Value),
+                                new SQLiteParameter("@PaymentDate", DateTime.Today.ToString("yyyy-MM-dd")),
+                                new SQLiteParameter("@Amount", perStudent),
+                                new SQLiteParameter("@Description", desc)
+                            });
+                        }
+                        else
+                        {
+                            int payId = Convert.ToInt32(dtExisting.Rows[0]["PaymentID"]);
+                            string payStatus = dtExisting.Rows[0]["Status"].ToString() ?? "Pending";
+                            if (payStatus == "Pending")
+                            {
+                                string updatePaySql = @"
+                                    UPDATE Payments
+                                    SET Amount = @Amount, Description = @Description
+                                    WHERE PaymentID = @PaymentID";
+                                DatabaseHelper.ExecuteNonQuery(updatePaySql, new[]
+                                {
+                                    new SQLiteParameter("@Amount", perStudent),
+                                    new SQLiteParameter("@Description", desc),
+                                    new SQLiteParameter("@PaymentID", payId)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
         }
 
         #endregion
@@ -267,7 +391,11 @@ namespace QuanLyKtx.Services
                     p.Description AS [Nội dung],
                     CASE p.Status
                         WHEN 'Paid' THEN 'Đã thanh toán'
-                        WHEN 'Pending' THEN 'Chờ xử lý'
+                        WHEN 'Pending' THEN 
+                            CASE 
+                                WHEN p.Description LIKE '%[ĐÃ CHUYỂN KHOẢN%' THEN 'Chờ duyệt (Đã CK)'
+                                ELSE 'Chờ xử lý'
+                            END
                         WHEN 'Cancelled' THEN 'Đã hủy'
                         ELSE p.Status
                     END AS [Trạng thái],
@@ -450,12 +578,71 @@ namespace QuanLyKtx.Services
                     p.Amount AS [Số tiền (đ)],
                     p.PaymentType AS [Loại chi phí],
                     p.Description AS [Nội dung],
-                    strftime('%d/%m/%Y', p.PaymentDate) AS [Ngày tạo]
+                    strftime('%d/%m/%Y', p.PaymentDate) AS [Ngày tạo],
+                    CASE 
+                        WHEN p.Description LIKE '%[ĐÃ CHUYỂN KHOẢN%' THEN '⏳ Chờ Admin duyệt'
+                        ELSE 'Chưa thanh toán'
+                    END AS [Trạng thái]
                 FROM Payments p
                 WHERE p.StudentID = @StudentID AND p.Status = 'Pending'
                 ORDER BY p.PaymentDate DESC, p.PaymentID DESC";
 
             return DatabaseHelper.ExecuteQuery(sql, new[] { new SQLiteParameter("@StudentID", studentId) });
+        }
+
+        /// <summary>
+        /// Sinh viên xác nhận đã chuyển khoản qua QR, gửi yêu cầu tới Admin để chờ duyệt
+        /// </summary>
+        public bool RequestPaymentConfirmation(int paymentId, string? studentNote, out string errorMessage)
+        {
+            errorMessage = string.Empty;
+            try
+            {
+                string getSql = "SELECT Description FROM Payments WHERE PaymentID = @PaymentID AND Status = 'Pending'";
+                var dt = DatabaseHelper.ExecuteQuery(getSql, new[] { new SQLiteParameter("@PaymentID", paymentId) });
+                if (dt.Rows.Count == 0)
+                {
+                    errorMessage = "Khoản thanh toán không tồn tại hoặc đã được xử lý.";
+                    return false;
+                }
+
+                string curDesc = dt.Rows[0]["Description"]?.ToString() ?? "";
+                string tag = string.IsNullOrWhiteSpace(studentNote)
+                    ? "[ĐÃ CHUYỂN KHOẢN - CHỜ DUYỆT]"
+                    : $"[ĐÃ CHUYỂN KHOẢN - CHỜ DUYỆT (Mã GD/Ghi chú: {studentNote.Trim()})]";
+
+                // Loại bỏ tag cũ nếu sinh viên gửi lại
+                if (curDesc.Contains("[ĐÃ CHUYỂN KHOẢN - CHỜ DUYỆT"))
+                {
+                    int endIdx = curDesc.IndexOf(']');
+                    if (endIdx >= 0)
+                    {
+                        curDesc = curDesc.Substring(endIdx + 1).TrimStart(' ', '|', '-');
+                    }
+                }
+
+                string newDesc = string.IsNullOrWhiteSpace(curDesc)
+                    ? tag
+                    : $"{tag} | {curDesc}";
+
+                string sql = @"
+                    UPDATE Payments
+                    SET Description = @Description
+                    WHERE PaymentID = @PaymentID AND Status = 'Pending'";
+
+                int rows = DatabaseHelper.ExecuteNonQuery(sql, new[]
+                {
+                    new SQLiteParameter("@PaymentID", paymentId),
+                    new SQLiteParameter("@Description", newDesc)
+                });
+
+                return rows > 0;
+            }
+            catch (Exception ex)
+            {
+                errorMessage = "Lỗi gửi yêu cầu xác nhận: " + ex.Message;
+                return false;
+            }
         }
 
         /// <summary>
@@ -467,7 +654,7 @@ namespace QuanLyKtx.Services
             try
             {
                 // Lấy thông tin khoản thanh toán trước khi cập nhật
-                string sqlGet = "SELECT StudentID, Amount, PaymentType FROM Payments WHERE PaymentID = @PaymentID";
+                string sqlGet = "SELECT StudentID, Amount, PaymentType, Description FROM Payments WHERE PaymentID = @PaymentID";
                 var dt = DatabaseHelper.ExecuteQuery(sqlGet, new[] { new SQLiteParameter("@PaymentID", paymentId) });
                 if (dt.Rows.Count == 0)
                 {
@@ -478,16 +665,35 @@ namespace QuanLyKtx.Services
                 int studentId = Convert.ToInt32(dt.Rows[0]["StudentID"]);
                 decimal amount = Convert.ToDecimal(dt.Rows[0]["Amount"]);
                 string paymentType = dt.Rows[0]["PaymentType"].ToString() ?? "";
+                string curDesc = dt.Rows[0]["Description"]?.ToString() ?? "";
+
+                // Cập nhật tag ghi chú rõ ràng đã được Admin duyệt
+                string updatedDesc = curDesc;
+                if (updatedDesc.Contains("[ĐÃ CHUYỂN KHOẢN - CHỜ DUYỆT"))
+                {
+                    int endIdx = updatedDesc.IndexOf(']');
+                    if (endIdx >= 0)
+                    {
+                        string notePart = updatedDesc.Substring(0, endIdx + 1).Replace("CHỜ DUYỆT", "ADMIN ĐÃ DUYỆT");
+                        string restPart = updatedDesc.Substring(endIdx + 1);
+                        updatedDesc = notePart + restPart;
+                    }
+                }
+                else if (!updatedDesc.Contains("[ADMIN ĐÃ DUYỆT]"))
+                {
+                    updatedDesc = "[ADMIN ĐÃ DUYỆT] " + updatedDesc;
+                }
 
                 string sql = @"
                     UPDATE Payments 
-                    SET Status = 'Paid', PaymentDate = @PaymentDate
+                    SET Status = 'Paid', PaymentDate = @PaymentDate, Description = @Description
                     WHERE PaymentID = @PaymentID AND Status = 'Pending'";
 
                 int rows = DatabaseHelper.ExecuteNonQuery(sql, new[]
                 {
                     new SQLiteParameter("@PaymentID", paymentId),
-                    new SQLiteParameter("@PaymentDate", DateTime.Today)
+                    new SQLiteParameter("@PaymentDate", DateTime.Today.ToString("yyyy-MM-dd")),
+                    new SQLiteParameter("@Description", updatedDesc)
                 });
 
                 if (rows > 0)

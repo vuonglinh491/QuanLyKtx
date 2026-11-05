@@ -123,20 +123,68 @@ namespace QuanLyKtx.Services
             {
                 string sql = @"
                     INSERT INTO Contracts (StudentID, RoomID, StartDate, EndDate, MonthlyFee, Deposit, Status)
-                    VALUES (@StudentID, @RoomID, @StartDate, @EndDate, @MonthlyFee, @Deposit, @Status)";
+                    VALUES (@StudentID, @RoomID, @StartDate, @EndDate, @MonthlyFee, @Deposit, @Status);
+                    SELECT last_insert_rowid();";
 
                 var parameters = new SQLiteParameter[]
                 {
                     new SQLiteParameter("@StudentID", contract.StudentID),
                     new SQLiteParameter("@RoomID", contract.RoomID),
-                    new SQLiteParameter("@StartDate", contract.StartDate.Date),
-                    new SQLiteParameter("@EndDate", contract.EndDate.Date),
+                    new SQLiteParameter("@StartDate", contract.StartDate.Date.ToString("yyyy-MM-dd")),
+                    new SQLiteParameter("@EndDate", contract.EndDate.Date.ToString("yyyy-MM-dd")),
                     new SQLiteParameter("@MonthlyFee", contract.MonthlyFee),
                     new SQLiteParameter("@Deposit", contract.Deposit),
                     new SQLiteParameter("@Status", string.IsNullOrWhiteSpace(contract.Status) ? "Active" : contract.Status)
                 };
 
-                return DatabaseHelper.ExecuteNonQuery(sql, parameters) > 0;
+                object? newIdObj = DatabaseHelper.ExecuteScalar(sql, parameters);
+                if (newIdObj == null || newIdObj == DBNull.Value) return false;
+                int contractId = Convert.ToInt32(newIdObj);
+
+                // Lấy thông tin phòng & tòa nhà
+                string roomSql = @"
+                    SELECT r.RoomNumber, b.BuildingName 
+                    FROM Rooms r 
+                    JOIN Buildings b ON r.BuildingID = b.BuildingID 
+                    WHERE r.RoomID = @RoomID";
+                var dtRoom = DatabaseHelper.ExecuteQuery(roomSql, new[] { new SQLiteParameter("@RoomID", contract.RoomID) });
+                string roomTitle = (dtRoom.Rows.Count > 0)
+                    ? $"{dtRoom.Rows[0]["BuildingName"]} P.{dtRoom.Rows[0]["RoomNumber"]}"
+                    : $"Phòng ID {contract.RoomID}";
+
+                // 1. Tự động thêm hóa đơn Tiền phòng vào phần chờ thanh toán (Pending)
+                if (contract.MonthlyFee > 0)
+                {
+                    string insertPaySql = @"
+                        INSERT INTO Payments (StudentID, ContractID, PaymentDate, Amount, PaymentType, Description, Status)
+                        VALUES (@StudentID, @ContractID, @PaymentDate, @Amount, 'Tiền phòng', @Description, 'Pending')";
+                    DatabaseHelper.ExecuteNonQuery(insertPaySql, new[]
+                    {
+                        new SQLiteParameter("@StudentID", contract.StudentID),
+                        new SQLiteParameter("@ContractID", contractId),
+                        new SQLiteParameter("@PaymentDate", contract.StartDate.Date.ToString("yyyy-MM-dd")),
+                        new SQLiteParameter("@Amount", contract.MonthlyFee),
+                        new SQLiteParameter("@Description", $"Tiền phòng KTX - Hợp đồng HD{contractId:D4} ({roomTitle})")
+                    });
+                }
+
+                // 2. Nếu có tiền đặt cọc phòng > 0, thêm hóa đơn tiền cọc vào phần chờ thanh toán
+                if (contract.Deposit > 0)
+                {
+                    string insertDepositSql = @"
+                        INSERT INTO Payments (StudentID, ContractID, PaymentDate, Amount, PaymentType, Description, Status)
+                        VALUES (@StudentID, @ContractID, @PaymentDate, @Amount, 'Tiền cọc phòng', @Description, 'Pending')";
+                    DatabaseHelper.ExecuteNonQuery(insertDepositSql, new[]
+                    {
+                        new SQLiteParameter("@StudentID", contract.StudentID),
+                        new SQLiteParameter("@ContractID", contractId),
+                        new SQLiteParameter("@PaymentDate", contract.StartDate.Date.ToString("yyyy-MM-dd")),
+                        new SQLiteParameter("@Amount", contract.Deposit),
+                        new SQLiteParameter("@Description", $"Tiền đặt cọc KTX - Hợp đồng HD{contractId:D4} ({roomTitle})")
+                    });
+                }
+
+                return true;
             }
             catch (Exception ex)
             {

@@ -189,7 +189,14 @@ namespace QuanLyKtx.Forms.Manager
 
             if (_paymentService.AddElectricityWater(ew, out string error))
             {
-                MessageBox.Show("Ghi nhận chỉ số điện nước thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                decimal total = (ew.NewElectricIndex - ew.OldElectricIndex) * PaymentService.DON_GIA_DIEN +
+                                (ew.NewWaterIndex - ew.OldWaterIndex) * PaymentService.DON_GIA_NUOC;
+                string msg = "Ghi nhận chỉ số điện nước thành công!";
+                if (total > 0)
+                {
+                    msg += $"\n\nTổng tiền: {total:N0} VNĐ.\nHệ thống đã tự động tạo hóa đơn tiền điện nước vào danh sách Chờ thanh toán cho các sinh viên trong phòng.";
+                }
+                MessageBox.Show(msg, "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 LoadRecords();
                 ClearInputForm();
             }

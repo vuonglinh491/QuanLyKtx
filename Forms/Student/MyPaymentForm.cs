@@ -40,6 +40,31 @@ namespace QuanLyKtx.Forms.Student
         {
             DataGridViewHelper.Configure(dgvPayments);
             DataGridViewHelper.Configure(dgvPending);
+            dgvPending.CellDoubleClick += dgvPending_CellDoubleClick;
+            dgvPending.CellFormatting += dgvPending_CellFormatting;
+        }
+
+        private void dgvPending_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0)
+            {
+                btnPayQR_Click(btnPayQR, EventArgs.Empty);
+            }
+        }
+
+        private void dgvPending_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0 || e.CellStyle == null) return;
+            string colName = dgvPending.Columns[e.ColumnIndex].Name;
+            if (colName == "Trạng thái" && e.Value != null)
+            {
+                string val = e.Value.ToString() ?? "";
+                if (val.Contains("Chờ Admin duyệt"))
+                {
+                    e.CellStyle.ForeColor = Color.FromArgb(180, 83, 9);
+                    e.CellStyle.Font = new Font(dgvPending.Font, FontStyle.Bold);
+                }
+            }
         }
 
         // ─────────────────────────────────────────────────────────────
@@ -184,9 +209,26 @@ namespace QuanLyKtx.Forms.Student
         {
             bool hasSelection = dgvPending.SelectedRows.Count > 0;
             btnPayQR.Enabled = hasSelection;
-            btnPayQR.BackColor = hasSelection
-                ? UITheme.Success
-                : Color.FromArgb(203, 213, 225);
+            if (hasSelection)
+            {
+                var row = dgvPending.SelectedRows[0];
+                string status = row.Cells["Trạng thái"]?.Value?.ToString() ?? "";
+                if (status.Contains("Chờ Admin duyệt"))
+                {
+                    btnPayQR.BackColor = Color.FromArgb(245, 158, 11);
+                    btnPayQR.Text = "📱  Xem QR / Chờ Admin duyệt";
+                }
+                else
+                {
+                    btnPayQR.BackColor = UITheme.Success;
+                    btnPayQR.Text = "📱  Thanh toán QR";
+                }
+            }
+            else
+            {
+                btnPayQR.BackColor = Color.FromArgb(203, 213, 225);
+                btnPayQR.Text = "📱  Thanh toán QR";
+            }
         }
 
         // ─────────────────────────────────────────────────────────────

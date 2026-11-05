@@ -166,7 +166,16 @@ namespace QuanLyKtx.Forms.Manager
 
             if (_contractService.AddContract(contract, out string error))
             {
-                MessageBox.Show("Tạo hợp đồng thuê phòng thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                string msg = "Tạo hợp đồng thuê phòng thành công!";
+                if (contract.MonthlyFee > 0)
+                {
+                    msg += $"\n\nĐã tự động tạo hóa đơn tiền phòng ({contract.MonthlyFee:N0} VNĐ) vào danh sách Chờ thanh toán của sinh viên.";
+                }
+                if (contract.Deposit > 0)
+                {
+                    msg += $"\nĐã tự động tạo hóa đơn tiền cọc ({contract.Deposit:N0} VNĐ) vào danh sách Chờ thanh toán của sinh viên.";
+                }
+                MessageBox.Show(msg, "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 LoadContracts();
                 ClearInputForm();
             }

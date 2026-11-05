@@ -49,7 +49,31 @@ namespace QuanLyKtx.Forms.Manager
         private void SetupDataGridViewStyle()
         {
             DataGridViewHelper.Configure(dgvPayments);
+            dgvPayments.CellFormatting += dgvPayments_CellFormatting;
             ScrollableControlHelper.Configure(grpInfo);
+        }
+
+        private void dgvPayments_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0 || e.CellStyle == null) return;
+            string colName = dgvPayments.Columns[e.ColumnIndex].Name;
+            if (colName == "Trạng thái" && e.Value != null)
+            {
+                string val = e.Value.ToString() ?? "";
+                if (val.Contains("Đã CK"))
+                {
+                    e.CellStyle.ForeColor = Color.FromArgb(180, 83, 9);
+                    e.CellStyle.Font = new Font(dgvPayments.Font, FontStyle.Bold);
+                }
+                else if (val == "Đã thanh toán")
+                {
+                    e.CellStyle.ForeColor = Color.FromArgb(16, 185, 129);
+                }
+                else if (val == "Chờ xử lý")
+                {
+                    e.CellStyle.ForeColor = Color.FromArgb(239, 68, 68);
+                }
+            }
         }
 
         private void LoadDropdowns()
@@ -280,10 +304,26 @@ namespace QuanLyKtx.Forms.Manager
                 txtDescription.Text = row.Cells["Nội dung"].Value?.ToString() ?? string.Empty;
 
                 // Bật/tắt nút duyệt xác nhận thanh toán
-                btnConfirmPaid.Enabled    = (statusCode == "Pending");
-                btnConfirmPaid.BackColor  = (statusCode == "Pending")
-                    ? System.Drawing.Color.FromArgb(16, 185, 129)
-                    : System.Drawing.Color.FromArgb(200, 210, 200);
+                btnConfirmPaid.Enabled = (statusCode == "Pending");
+                if (statusCode == "Pending")
+                {
+                    string statusText = row.Cells["Trạng thái"].Value?.ToString() ?? "";
+                    if (statusText.Contains("Đã CK") || txtDescription.Text.Contains("[ĐÃ CHUYỂN KHOẢN"))
+                    {
+                        btnConfirmPaid.Text = "✅  Duyệt nộp tiền (SV đã CK)";
+                        btnConfirmPaid.BackColor = Color.FromArgb(16, 185, 129);
+                    }
+                    else
+                    {
+                        btnConfirmPaid.Text = "✅  Duyệt nộp tiền";
+                        btnConfirmPaid.BackColor = Color.FromArgb(16, 185, 129);
+                    }
+                }
+                else
+                {
+                    btnConfirmPaid.Text = "✅  Duyệt nộp tiền";
+                    btnConfirmPaid.BackColor = Color.FromArgb(200, 210, 200);
+                }
             }
         }
 
@@ -309,13 +349,15 @@ namespace QuanLyKtx.Forms.Manager
 
             string studentInfo = $"{cboStudent.Text}";
             string amountText  = txtAmount.Text.Trim();
+            string descText    = txtDescription.Text.Trim();
 
             var confirm = MessageBox.Show(
                 $"Xác nhận duyệt khoản thanh toán sau?\n\n" +
                 $"   Sinh viên : {studentInfo}\n" +
                 $"   Khoản nộp : {cboPaymentType.Text}\n" +
-                $"   Số tiền   : {(decimal.TryParse(amountText, out decimal amt) ? amt.ToString("N0") : amountText)} VNĐ\n\n" +
-                $"Trạng thái sẽ chuyển từ \"Chờ xử lý\" → \"Đã thanh toán\".",
+                $"   Số tiền   : {(decimal.TryParse(amountText, out decimal amt) ? amt.ToString("N0") : amountText)} VNĐ\n" +
+                (!string.IsNullOrEmpty(descText) ? $"   Ghi chú   : {descText}\n\n" : "\n") +
+                $"Trạng thái sẽ chuyển từ \"Chờ xử lý / Chờ duyệt\" → \"Đã thanh toán\".",
                 "Xác nhận duyệt thanh toán",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);
